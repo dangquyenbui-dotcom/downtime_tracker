@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audit Log - Downtime Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .navbar h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .header-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .header-card h1 {
+            color: #2d3748;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header-card p {
+            color: #718096;
+            font-size: 16px;
+        }
+        
+        .filters-bar {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .filter-label {
+            font-size: 12px;
+            color: #718096;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .filter-control {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .audit-table {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th {
+            background: #f7fafc;
+            color: #4a5568;
+            font-weight: 600;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+        
+        .table td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+        
+        .table tbody tr:hover {
+            background: #f7fafc;
+        }
+        
+        .action-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+        
+        .action-insert {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .action-update {
+            background: #bee3f8;
+            color: #2a4e7c;
+        }
+        
+        .action-delete {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .action-deactivate {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+        
+        .change-detail {
+            background: #f7fafc;
+            border-left: 3px solid #667eea;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 13px;
+        }
+        
+        .old-value {
+            color: #c53030;
+            background: #fff5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-decoration: line-through;
+        }
+        
+        .new-value {
+            color: #2f855a;
+            background: #f0fff4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+        
+        .null-value {
+            color: #a0aec0;
+            font-style: italic;
+        }
+        
+        .user-tag {
+            background: #667eea15;
+            color: #667eea;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .timestamp {
+            color: #718096;
+            font-size: 13px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+        
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #4a5568;
+        }
+        
+        .history-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            position: relative;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .modal-header h2 {
+            color: #2d3748;
+            font-size: 24px;
+        }
+        
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #a0aec0;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .close:hover {
+            color: #4a5568;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e2e8f0;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 25px;
+        }
+        
+        .timeline-marker {
+            position: absolute;
+            left: -30px;
+            top: 0;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #667eea;
+        }
+        
+        .timeline-content {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .timeline-date {
+            color: #718096;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .timeline-action {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+        
+        .timeline-details {
+            color: #4a5568;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .filters-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group {
+                width: 100%;
+            }
+            
+            .table {
+                font-size: 12px;
+            }
+            
+            .table th, .table td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>📋 Audit Log</h1>
+        <div class="nav-links">
+            <a href="/admin">Admin Panel</a>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="header-card">
+            <h1>System Audit Log</h1>
+            <p>Complete history of all changes made to facilities and production lines</p>
+        </div>
+        
+        <div class="filters-bar">
+            <div class="filter-group">
+                <label class="filter-label">Table</label>
+                <select id="tableFilter" class="filter-control" onchange="filterAuditLog()">
+                    <option value="">All Tables</option>
+                    <option value="Facilities">Facilities</option>
+                    <option value="ProductionLines">Production Lines</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Action</label>
+                <select id="actionFilter" class="filter-control" onchange="filterAuditLog()">
+                    <option value="">All Actions</option>
+                    <option value="INSERT">Created</option>
+                    <option value="UPDATE">Modified</option>
+                    <option value="DEACTIVATE">Deactivated</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">User</label>
+                <select id="userFilter" class="filter-control" onchange="filterAuditLog()">
+                    <option value="">All Users</option>
+                    {% set users = history|map(attribute='changed_by')|unique|list %}
+                    {% for user in users %}
+                    <option value="{{ user }}">{{ user }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Date Range</label>
+                <input type="date" id="dateFilter" class="filter-control" onchange="filterAuditLog()">
+            </div>
+            
+            <button class="btn btn-primary" onclick="resetFilters()">Reset Filters</button>
+        </div>
+        
+        <div class="audit-table">
+            {% if history %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Table</th>
+                        <th>Record</th>
+                        <th>Action</th>
+                        <th>Changes</th>
+                        <th>User</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                    {% for entry in history %}
+                    <tr data-table="{{ entry.table_name }}" 
+                        data-action="{{ entry.action_type }}" 
+                        data-user="{{ entry.changed_by }}"
+                        data-date="{{ entry.changed_date.strftime('%Y-%m-%d') }}">
+                        <td>
+                            <div class="timestamp">
+                                {{ entry.changed_date.strftime('%Y-%m-%d') }}<br>
+                                <strong>{{ entry.changed_date.strftime('%H:%M:%S') }}</strong>
+                            </div>
+                        </td>
+                        <td>{{ entry.table_name }}</td>
+                        <td>#{{ entry.record_id }}</td>
+                        <td>
+                            {% if entry.action_type == 'INSERT' %}
+                            <span class="action-badge action-insert">Created</span>
+                            {% elif entry.action_type == 'UPDATE' %}
+                            <span class="action-badge action-update">Updated</span>
+                            {% elif entry.action_type == 'DEACTIVATE' %}
+                            <span class="action-badge action-deactivate">Deactivated</span>
+                            {% elif entry.action_type == 'DELETE' %}
+                            <span class="action-badge action-delete">Deleted</span>
+                            {% else %}
+                            <span class="action-badge">{{ entry.action_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.field_name %}
+                            <div class="change-detail">
+                                <strong>{{ entry.field_name }}:</strong><br>
+                                {% if entry.old_value %}
+                                <span class="old-value">{{ entry.old_value }}</span>
+                                {% else %}
+                                <span class="null-value">(empty)</span>
+                                {% endif %}
+                                →
+                                {% if entry.new_value %}
+                                <span class="new-value">{{ entry.new_value }}</span>
+                                {% else %}
+                                <span class="null-value">(empty)</span>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span style="color: #a0aec0;">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="user-tag">{{ entry.changed_by }}</span>
+                        </td>
+                        <td>
+                            {% if entry.additional_notes %}
+                            <small>{{ entry.additional_notes }}</small>
+                            {% endif %}
+                            {% if entry.user_ip %}
+                            <small style="color: #a0aec0;">IP: {{ entry.user_ip }}</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <h3>No audit history available</h3>
+                <p>Changes to facilities and production lines will appear here</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- History Modal (for viewing detailed history of a single record) -->
+    <div id="historyModal" class="history-modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeHistoryModal()">&times;</span>
+            <div class="modal-header">
+                <h2 id="modalTitle">Change History</h2>
+            </div>
+            <div id="modalContent">
+                <!-- Timeline will be inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function filterAuditLog() {
+            const tableFilter = document.getElementById('tableFilter').value.toLowerCase();
+            const actionFilter = document.getElementById('actionFilter').value.toLowerCase();
+            const userFilter = document.getElementById('userFilter').value.toLowerCase();
+            const dateFilter = document.getElementById('dateFilter').value;
+            
+            const rows = document.querySelectorAll('#auditTableBody tr');
+            
+            rows.forEach(row => {
+                const table = row.getAttribute('data-table').toLowerCase();
+                const action = row.getAttribute('data-action').toLowerCase();
+                const user = row.getAttribute('data-user').toLowerCase();
+                const date = row.getAttribute('data-date');
+                
+                let show = true;
+                
+                if (tableFilter && !table.includes(tableFilter)) show = false;
+                if (actionFilter && !action.includes(actionFilter)) show = false;
+                if (userFilter && !user.includes(userFilter)) show = false;
+                if (dateFilter && date !== dateFilter) show = false;
+                
+                row.style.display = show ? '' : 'none';
+            });
+        }
+        
+        function resetFilters() {
+            document.getElementById('tableFilter').value = '';
+            document.getElementById('actionFilter').value = '';
+            document.getElementById('userFilter').value = '';
+            document.getElementById('dateFilter').value = '';
+            filterAuditLog();
+        }
+        
+        function showHistory(type, id, name) {
+            // This function would be called from facility/line pages to show their history
+            document.getElementById('modalTitle').textContent = `Change History: ${name}`;
+            document.getElementById('historyModal').style.display = 'block';
+            
+            // Fetch history via AJAX
+            fetch(`/admin/${type}/history/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayTimeline(data.history);
+                    }
+                });
+        }
+        
+        function displayTimeline(history) {
+            let html = '<div class="timeline">';
+            
+            history.forEach(item => {
+                const date = new Date(item.changed_date);
+                html += `
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">
+                                ${date.toLocaleDateString()} ${date.toLocaleTimeString()}
+                            </div>
+                            <div class="timeline-action">
+                                ${item.action_description} by ${item.changed_by}
+                            </div>
+                            <div class="timeline-details">
+                                ${item.field_name ? `${item.field_name}: ${item.old_value || '(empty)'} → ${item.new_value || '(empty)'}` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            document.getElementById('modalContent').innerHTML = html;
+        }
+        
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('historyModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
