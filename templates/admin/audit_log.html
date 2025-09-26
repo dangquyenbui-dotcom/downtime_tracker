@@ -373,6 +373,15 @@
                 width: 100%;
             }
             
+            .filter-group div {
+                flex-direction: column !important;
+                gap: 5px !important;
+            }
+            
+            .filter-group input[type="date"] {
+                width: 100%;
+            }
+            
             .table {
                 font-size: 12px;
             }
@@ -432,10 +441,25 @@
             
             <div class="filter-group">
                 <label class="filter-label">Date Range</label>
-                <input type="date" id="dateFilter" class="filter-control" onchange="filterAuditLog()">
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <input type="date" id="startDateFilter" class="filter-control" onchange="filterAuditLog()" placeholder="Start">
+                    <span style="color: #718096;">to</span>
+                    <input type="date" id="endDateFilter" class="filter-control" onchange="filterAuditLog()" placeholder="End">
+                    <select class="filter-control" style="min-width: 120px;" onchange="setDateRange(this.value)">
+                        <option value="">Quick select...</option>
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="week">Last 7 days</option>
+                        <option value="month">Last 30 days</option>
+                    </select>
+                </div>
             </div>
             
             <button class="btn btn-primary" onclick="resetFilters()">Reset Filters</button>
+            
+            <div style="margin-left: auto; padding: 10px 15px; background: #f7fafc; border-radius: 6px; font-size: 14px; color: #4a5568;">
+                <span id="filterStatus">Showing all records</span>
+            </div>
         </div>
         
         <div class="audit-table">
@@ -504,10 +528,12 @@
                         </td>
                         <td>
                             {% if entry.additional_notes %}
-                            <small>{{ entry.additional_notes }}</small>
+                            <small style="display: block; margin-bottom: 4px;">{{ entry.additional_notes }}</small>
                             {% endif %}
                             {% if entry.user_ip %}
-                            <small style="color: #a0aec0;">IP: {{ entry.user_ip }}</small>
+                            <small style="color: #a0aec0; display: block;">
+                                IP: {{ entry.user_ip }}
+                            </small>
                             {% endif %}
                         </td>
                     </tr>
@@ -538,13 +564,52 @@
     </div>
     
     <script>
+        function setDateRange(range) {
+            const today = new Date();
+            let startDate, endDate;
+            
+            switch(range) {
+                case 'today':
+                    startDate = endDate = today.toISOString().split('T')[0];
+                    break;
+                case 'yesterday':
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    startDate = endDate = yesterday.toISOString().split('T')[0];
+                    break;
+                case 'week':
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    startDate = weekAgo.toISOString().split('T')[0];
+                    endDate = today.toISOString().split('T')[0];
+                    break;
+                case 'month':
+                    const monthAgo = new Date(today);
+                    monthAgo.setDate(monthAgo.getDate() - 30);
+                    startDate = monthAgo.toISOString().split('T')[0];
+                    endDate = today.toISOString().split('T')[0];
+                    break;
+                default:
+                    // Clear dates if no valid range
+                    startDate = '';
+                    endDate = '';
+            }
+            
+            document.getElementById('startDateFilter').value = startDate;
+            document.getElementById('endDateFilter').value = endDate;
+            filterAuditLog();
+        }
+        
         function filterAuditLog() {
             const tableFilter = document.getElementById('tableFilter').value.toLowerCase();
             const actionFilter = document.getElementById('actionFilter').value.toLowerCase();
             const userFilter = document.getElementById('userFilter').value.toLowerCase();
-            const dateFilter = document.getElementById('dateFilter').value;
+            const startDate = document.getElementById('startDateFilter').value;
+            const endDate = document.getElementById('endDateFilter').value;
             
             const rows = document.querySelectorAll('#auditTableBody tr');
+            let visibleCount = 0;
+            let hiddenCount = 0;
             
             rows.forEach(row => {
                 const table = row.getAttribute('data-table').toLowerCase();
@@ -557,18 +622,39 @@
                 if (tableFilter && !table.includes(tableFilter)) show = false;
                 if (actionFilter && !action.includes(actionFilter)) show = false;
                 if (userFilter && !user.includes(userFilter)) show = false;
-                if (dateFilter && date !== dateFilter) show = false;
+                
+                // Date range filtering
+                if (startDate && date < startDate) show = false;
+                if (endDate && date > endDate) show = false;
                 
                 row.style.display = show ? '' : 'none';
+                if (show) visibleCount++; else hiddenCount++;
             });
+            
+            // Update a status message (optional)
+            updateFilterStatus(visibleCount, hiddenCount);
         }
         
         function resetFilters() {
             document.getElementById('tableFilter').value = '';
             document.getElementById('actionFilter').value = '';
             document.getElementById('userFilter').value = '';
-            document.getElementById('dateFilter').value = '';
+            document.getElementById('startDateFilter').value = '';
+            document.getElementById('endDateFilter').value = '';
             filterAuditLog();
+        }
+        
+        function updateFilterStatus(visible, hidden) {
+            // Update the filter status message
+            const statusEl = document.getElementById('filterStatus');
+            if (statusEl) {
+                const total = visible + hidden;
+                if (hidden === 0) {
+                    statusEl.innerHTML = `Showing all <strong>${total}</strong> records`;
+                } else {
+                    statusEl.innerHTML = `Showing <strong>${visible}</strong> of <strong>${total}</strong> records`;
+                }
+            }
         }
         
         function showHistory(type, id, name) {
@@ -624,6 +710,12 @@
                 modal.style.display = 'none';
             }
         }
+        
+        // Initialize filter status on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const rows = document.querySelectorAll('#auditTableBody tr');
+            updateFilterStatus(rows.length, 0);
+        });
     </script>
 </body>
 </html>
