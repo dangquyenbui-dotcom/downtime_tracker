@@ -14,6 +14,7 @@ from database import db
 from routes.main import main_bp
 from routes.admin import admin_bp
 from routes.downtime import downtime_bp
+from routes.categories import categories_bp  # ← THIS WAS MISSING
 
 def create_app():
     """Application factory"""
@@ -27,6 +28,7 @@ def create_app():
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(downtime_bp)
+    app.register_blueprint(categories_bp)  # ← THIS WAS MISSING
     
     return app
 
@@ -72,6 +74,7 @@ def test_connections():
 if __name__ == '__main__':
     # Create templates folder if it doesn't exist
     os.makedirs('templates', exist_ok=True)
+    os.makedirs('templates/admin', exist_ok=True)
     
     # Display configuration
     print("\n" + "="*50)

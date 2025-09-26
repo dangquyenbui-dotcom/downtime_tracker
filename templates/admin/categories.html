@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Downtime Categories - Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .navbar h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .header-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .header-card h1 {
+            color: #2d3748;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header-card p {
+            color: #718096;
+            font-size: 16px;
+        }
+        
+        .actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+        
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+        
+        .categories-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .category-group {
+            border-bottom: 2px solid #f7fafc;
+        }
+        
+        .category-group:last-child {
+            border-bottom: none;
+        }
+        
+        .main-category {
+            background: #f7fafc;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .main-category:hover {
+            background: #edf2f7;
+        }
+        
+        .main-category.expanded {
+            background: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
+        }
+        
+        .category-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+        
+        .category-code {
+            background: #2d3748;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .sub-category .category-code {
+            background: #718096;
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+        
+        .category-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            flex: 1;
+        }
+        
+        .sub-category .category-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .category-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .notification-badge {
+            background: #fed7e7;
+            color: #c53030;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .notification-badge.active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-active {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+        
+        .status-inactive {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        
+        .expand-icon {
+            color: #718096;
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+        
+        .subcategories {
+            display: none;
+            background: white;
+        }
+        
+        .subcategories.show {
+            display: block;
+        }
+        
+        .sub-category {
+            padding: 15px 20px 15px 60px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .sub-category:hover {
+            background: #f7fafc;
+        }
+        
+        .category-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+        
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #4a5568;
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .alert-success {
+            background: #c6f6d5;
+            color: #2f855a;
+            border: 1px solid #9ae6b4;
+        }
+        
+        .alert-error {
+            background: #fed7d7;
+            color: #c53030;
+            border: 1px solid #fc8181;
+        }
+        
+        .alert-info {
+            background: #bee3f8;
+            color: #2a4e7c;
+            border: 1px solid #90cdf4;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #4a5568;
+            font-weight: 500;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        
+        .form-control, .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+            background: white;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .color-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .color-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+        }
+        
+        input[type="color"] {
+            width: 60px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+        
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #a0aec0;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .close:hover {
+            color: #4a5568;
+        }
+        
+        .legend-box {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .legend-title {
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+        
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #718096;
+        }
+        
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                text-align: center;
+                padding: 15px 20px;
+            }
+            
+            .nav-links {
+                margin-top: 10px;
+            }
+            
+            .actions-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .sub-category {
+                padding-left: 40px;
+            }
+            
+            .category-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>📊 Downtime Categories</h1>
+        <div class="nav-links">
+            <a href="/admin">Admin Panel</a>
+            <a href="/admin/audit-log">Audit Log</a>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="header-card">
+            <h1>Downtime Categories Management</h1>
+            <p>Configure hierarchical downtime reason codes for tracking production issues</p>
+        </div>
+        
+        <div id="alerts"></div>
+        
+        <!-- Legend Box -->
+        <div class="legend-box">
+            <div class="legend-title">Category Structure</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <span style="background: #2d3748; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 600;">XX</span>
+                    Main Category Code
+                </div>
+                <div class="legend-item">
+                    <span style="background: #718096; color: white; padding: 2px 6px; border-radius: 4px;">XX##</span>
+                    Sub-Category Code
+                </div>
+                <div class="legend-item">
+                    <span class="notification-badge active">NOTIFY</span>
+                    Email notifications enabled
+                </div>
+                <div class="legend-item">
+                    <span class="status-badge status-active">ACTIVE</span>
+                    Category is active
+                </div>
+            </div>
+        </div>
+        
+        <div class="actions-bar">
+            <div>
+                <strong id="categoryCount">{{ categories|length }}</strong> main categories configured
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-success" onclick="initializeStandard()">
+                    📋 Initialize Standard Categories
+                </button>
+                <button class="btn btn-primary" onclick="openAddModal()">
+                    + Add New Category
+                </button>
+            </div>
+        </div>
+        
+        <div class="categories-container">
+            {% if categories %}
+                {% for category in categories %}
+                <div class="category-group">
+                    <div class="main-category" onclick="toggleSubcategories({{ category.category_id }})">
+                        <div class="category-info">
+                            <span class="expand-icon" id="expand-{{ category.category_id }}">▶</span>
+                            <span class="category-code">{{ category.category_code }}</span>
+                            <span class="category-name">{{ category.category_name }}</span>
+                            <div class="category-color" style="background-color: {{ category.color_code or '#667eea' }};"></div>
+                            {% if category.notification_required %}
+                            <span class="notification-badge active">NOTIFY</span>
+                            {% endif %}
+                            {% if category.is_active %}
+                            <span class="status-badge status-active">Active</span>
+                            {% else %}
+                            <span class="status-badge status-inactive">Inactive</span>
+                            {% endif %}
+                        </div>
+                        <div class="category-actions" onclick="event.stopPropagation();">
+                            <button class="btn btn-secondary btn-sm" onclick="openEditModal({{ category.category_id }}, '{{ category.category_name }}', '{{ category.category_code }}', '{{ category.description or '' }}', '{{ category.color_code or '#667eea' }}', {{ 'true' if category.notification_required else 'false' }})">
+                                Edit
+                            </button>
+                            {% if category.is_active %}
+                            <button class="btn btn-secondary btn-sm" onclick="deleteCategory({{ category.category_id }}, '{{ category.category_name }}')">
+                                Deactivate
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if category.subcategories %}
+                    <div class="subcategories" id="subcategories-{{ category.category_id }}">
+                        {% for sub in category.subcategories %}
+                        <div class="sub-category">
+                            <div class="category-info">
+                                <span class="category-code">{{ sub.category_code }}</span>
+                                <span class="category-name">{{ sub.category_name }}</span>
+                                <div class="category-color" style="background-color: {{ sub.color_code or category.color_code or '#667eea' }};"></div>
+                                {% if sub.notification_required %}
+                                <span class="notification-badge active">NOTIFY</span>
+                                {% endif %}
+                                {% if sub.is_active %}
+                                <span class="status-badge status-active">Active</span>
+                                {% else %}
+                                <span class="status-badge status-inactive">Inactive</span>
+                                {% endif %}
+                            </div>
+                            <div class="category-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="openEditModal({{ sub.category_id }}, '{{ sub.category_name }}', '{{ sub.category_code }}', '{{ sub.description or '' }}', '{{ sub.color_code or category.color_code or '#667eea' }}', {{ 'true' if sub.notification_required else 'false' }})">
+                                    Edit
+                                </button>
+                                {% if sub.is_active %}
+                                <button class="btn btn-secondary btn-sm" onclick="deleteCategory({{ sub.category_id }}, '{{ sub.category_name }}')">
+                                    Deactivate
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📊</div>
+                <h3>No categories configured</h3>
+                <p>Get started by initializing standard categories or creating your own</p>
+                <button class="btn btn-success" onclick="initializeStandard()" style="margin-top: 20px;">
+                    📋 Initialize Standard Categories
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Add Category Modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addModal')">&times;</span>
+            <h2>Add New Category</h2>
+            <form id="addForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="category_code">Category Code *</label>
+                        <input type="text" id="category_code" name="category_code" class="form-control" required 
+                               placeholder="e.g., EQ or EQ01" maxlength="4" style="text-transform: uppercase;">
+                        <small style="color: #718096; font-size: 12px;">2 letters for main, 4 chars for sub</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="category_name">Category Name *</label>
+                        <input type="text" id="category_name" name="category_name" class="form-control" required 
+                               placeholder="e.g., Equipment Failure">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="parent_id">Parent Category</label>
+                    <select id="parent_id" name="parent_id" class="form-select">
+                        <option value="">None (Main Category)</option>
+                        {% for category in categories %}
+                        {% if category.parent_id is none %}
+                        <option value="{{ category.category_id }}">{{ category.category_code }} - {{ category.category_name }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" class="form-control" rows="3" 
+                              placeholder="Optional description of when to use this category"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="color_code">Color Code</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="color_code" name="color_code" value="#667eea">
+                            <div class="color-preview" id="colorPreview" style="background-color: #667eea;"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Email Notifications</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="notification_required" name="notification_required">
+                            <label for="notification_required" style="margin: 0;">Send notifications for this category</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit Category Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('editModal')">&times;</span>
+            <h2>Edit Category</h2>
+            <form id="editForm">
+                <input type="hidden" id="editCategoryId" name="category_id">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Category Code</label>
+                        <input type="text" id="editCategoryCode" class="form-control" disabled 
+                               style="background: #f7fafc; cursor: not-allowed;">
+                        <small style="color: #718096; font-size: 12px;">Code cannot be changed</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCategoryName">Category Name *</label>
+                        <input type="text" id="editCategoryName" name="category_name" class="form-control" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editDescription">Description</label>
+                    <textarea id="editDescription" name="description" class="form-control" rows="3"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editColorCode">Color Code</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="editColorCode" name="color_code">
+                            <div class="color-preview" id="editColorPreview"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Email Notifications</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="editNotificationRequired" name="notification_required">
+                            <label for="editNotificationRequired" style="margin: 0;">Send notifications for this category</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Toggle subcategories display
+        function toggleSubcategories(categoryId) {
+            const subcategories = document.getElementById('subcategories-' + categoryId);
+            const expandIcon = document.getElementById('expand-' + categoryId);
+            
+            if (subcategories) {
+                subcategories.classList.toggle('show');
+                expandIcon.classList.toggle('expanded');
+            }
+        }
+        
+        // Modal functions
+        function openAddModal() {
+            document.getElementById('addModal').style.display = 'block';
+            document.getElementById('category_code').focus();
+        }
+        
+        function openEditModal(id, name, code, description, color, notificationRequired) {
+            document.getElementById('editCategoryId').value = id;
+            document.getElementById('editCategoryName').value = name;
+            document.getElementById('editCategoryCode').value = code;
+            document.getElementById('editDescription').value = description || '';
+            document.getElementById('editColorCode').value = color;
+            document.getElementById('editColorPreview').style.backgroundColor = color;
+            document.getElementById('editNotificationRequired').checked = notificationRequired;
+            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('editCategoryName').focus();
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+        
+        // Color preview update
+        document.getElementById('color_code').addEventListener('input', function(e) {
+            document.getElementById('colorPreview').style.backgroundColor = e.target.value;
+        });
+        
+        document.getElementById('editColorCode').addEventListener('input', function(e) {
+            document.getElementById('editColorPreview').style.backgroundColor = e.target.value;
+        });
+        
+        // Show alert messages
+        function showAlert(message, type) {
+            const alertsDiv = document.getElementById('alerts');
+            const alertClass = type === 'success' ? 'alert-success' : (type === 'info' ? 'alert-info' : 'alert-error');
+            alertsDiv.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+            setTimeout(() => {
+                alertsDiv.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Initialize standard categories
+        function initializeStandard() {
+            if (confirm('This will add standard manufacturing downtime categories. Existing categories will not be affected. Continue?')) {
+                fetch('/admin/categories/init-standard', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        showAlert(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showAlert('Error initializing categories', 'error');
+                });
+            }
+        }
+        
+        // Add category form
+        document.getElementById('addForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            // Handle checkbox
+            formData.set('notification_required', 
+                document.getElementById('notification_required').checked ? 'true' : 'false');
+            
+            fetch('/admin/categories/add', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    closeModal('addModal');
+                    this.reset();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showAlert('Error adding category', 'error');
+            });
+        });
+        
+        // Edit category form
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const categoryId = formData.get('category_id');
+            
+            // Handle checkbox
+            formData.set('notification_required', 
+                document.getElementById('editNotificationRequired').checked ? 'true' : 'false');
+            
+            fetch(`/admin/categories/edit/${categoryId}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    closeModal('editModal');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showAlert('Error updating category', 'error');
+            });
+        });
+        
+        // Delete category
+        function deleteCategory(id, name) {
+            if (confirm(`Are you sure you want to deactivate "${name}"? Subcategories must be deactivated first.`)) {
+                fetch(`/admin/categories/delete/${id}`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showAlert(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showAlert('Error deactivating category', 'error');
+                });
+            }
+        }
+        
+        // Auto-format category code to uppercase
+        document.getElementById('category_code').addEventListener('input', function(e) {
+            e.target.value = e.target.value.toUpperCase();
+        });
+    </script>
+</body>
+</html>
