@@ -1,11 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Downtime Categories - Admin Panel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- CRITICAL: Apply theme BEFORE page renders to prevent flash -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    
     <style>
         /* Theme Variables */
         :root {
+            /* Light Theme (Default) */
             --bg-primary: #f5f5f5;
             --bg-secondary: #ffffff;
             --bg-tertiary: #f7fafc;
@@ -65,34 +76,35 @@
             --expand-icon-color: #718096;
         }
         
+        /* Dark Theme - TRUE BLACK for OLED */
         [data-theme="dark"] {
-            --bg-primary: #1a202c;
-            --bg-secondary: #2d3748;
-            --bg-tertiary: #374151;
-            --bg-hover: #374151;
-            --bg-modal: rgba(0, 0, 0, 0.7);
-            --text-primary: #f7fafc;
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #141414;
+            --bg-hover: #1a1a1a;
+            --bg-modal: rgba(0, 0, 0, 0.8);
+            --text-primary: #ffffff;
             --text-secondary: #e2e8f0;
             --text-tertiary: #cbd5e0;
             --text-muted: #718096;
-            --border-primary: #4a5568;
-            --border-secondary: #718096;
+            --border-primary: #2d2d2d;
+            --border-secondary: #404040;
             --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --gradient-subtle: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-            --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-            --shadow-lg: 0 8px 16px rgba(0,0,0,0.5);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.5);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.6);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.7);
             --accent-blue: #90cdf4;
             --accent-green: #68d391;
             --accent-red: #fc8181;
-            --main-category-bg: #374151;
-            --main-category-hover: #4a5568;
+            --main-category-bg: #141414;
+            --main-category-hover: #2d2d2d;
             --expanded-bg: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
             --category-code-bg: #90cdf4;
-            --category-code-text: #1a202c;
+            --category-code-text: #000000;
             --sub-category-code-bg: #718096;
-            --sub-category-bg: #2d3748;
-            --sub-category-hover: #374151;
+            --sub-category-bg: #0a0a0a;
+            --sub-category-hover: #141414;
             --notification-badge-bg: rgba(252, 129, 129, 0.2);
             --notification-badge-text: #fc8181;
             --notification-active-bg: rgba(104, 211, 145, 0.2);
@@ -110,19 +122,32 @@
             --alert-info-bg: rgba(144, 205, 244, 0.2);
             --alert-info-text: #90cdf4;
             --alert-info-border: #90cdf4;
-            --legend-box-bg: #374151;
-            --legend-box-border: #4a5568;
+            --legend-box-bg: #141414;
+            --legend-box-border: #2d2d2d;
             --legend-title-color: #e2e8f0;
             --legend-item-color: #cbd5e0;
-            --input-bg: #374151;
-            --input-border: #4a5568;
+            --input-bg: #141414;
+            --input-border: #2d2d2d;
             --input-focus-border: #90cdf4;
-            --btn-secondary-bg: #374151;
+            --btn-secondary-bg: #141414;
             --btn-secondary-text: #e2e8f0;
-            --btn-secondary-hover: #4a5568;
+            --btn-secondary-hover: #2d2d2d;
             --modal-close-color: #cbd5e0;
-            --modal-close-hover: #f7fafc;
+            --modal-close-hover: #ffffff;
             --expand-icon-color: #cbd5e0;
+        }
+        
+        /* Hide body until styles are loaded to prevent any flash */
+        body {
+            visibility: hidden;
+            opacity: 0;
+        }
+        
+        /* Show body after styles are ready */
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.3s ease;
         }
         
         * {
@@ -210,6 +235,10 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         
+        [data-theme="dark"] .theme-toggle-slider {
+            background: #000000;
+        }
+        
         .theme-toggle input:checked ~ .theme-toggle-slider {
             transform: translateX(24px);
         }
@@ -275,6 +304,10 @@
             outline: none;
             border-color: var(--input-focus-border);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        [data-theme="dark"] .filter-select:focus {
+            box-shadow: 0 0 0 3px rgba(144, 205, 244, 0.1);
         }
         
         .btn {
@@ -587,6 +620,11 @@
             outline: none;
             border-color: var(--input-focus-border);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        [data-theme="dark"] .form-control:focus,
+        [data-theme="dark"] .form-select:focus {
+            box-shadow: 0 0 0 3px rgba(144, 205, 244, 0.1);
         }
         
         .color-input-wrapper {
@@ -975,13 +1013,18 @@
     </div>
     
     <script>
+        // Show body after everything is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('loaded');
+            filterCategories(); // Initialize filter on page load
+        });
+        
         // Theme Management
         const themeToggle = document.getElementById('themeToggle');
         const htmlElement = document.documentElement;
         
-        // Load saved theme preference
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        htmlElement.setAttribute('data-theme', currentTheme);
+        // Theme is already set in the head, just sync the toggle
+        const currentTheme = htmlElement.getAttribute('data-theme') || 'light';
         themeToggle.checked = currentTheme === 'dark';
         
         // Handle theme toggle
@@ -1185,11 +1228,6 @@
         // Auto-format category code to uppercase
         document.getElementById('category_code').addEventListener('input', function(e) {
             e.target.value = e.target.value.toUpperCase();
-        });
-        
-        // Initialize filter on page load (default to Active)
-        window.addEventListener('DOMContentLoaded', function() {
-            filterCategories();
         });
     </script>
 </body>

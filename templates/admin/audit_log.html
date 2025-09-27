@@ -1,11 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Audit Log - Downtime Tracker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- CRITICAL: Apply theme BEFORE page renders to prevent flash -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    
     <style>
         /* Theme Variables */
         :root {
+            /* Light Theme (Default) */
             --bg-primary: #f5f5f5;
             --bg-secondary: #ffffff;
             --bg-tertiary: #f7fafc;
@@ -62,22 +73,23 @@
             --timeline-content-bg: #f7fafc;
         }
         
+        /* Dark Theme - TRUE BLACK for OLED */
         [data-theme="dark"] {
-            --bg-primary: #1a202c;
-            --bg-secondary: #2d3748;
-            --bg-tertiary: #374151;
-            --bg-hover: #374151;
-            --bg-modal: rgba(0, 0, 0, 0.7);
-            --text-primary: #f7fafc;
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #141414;
+            --bg-hover: #1a1a1a;
+            --bg-modal: rgba(0, 0, 0, 0.8);
+            --text-primary: #ffffff;
             --text-secondary: #e2e8f0;
             --text-tertiary: #cbd5e0;
             --text-muted: #718096;
-            --border-primary: #4a5568;
-            --border-secondary: #718096;
+            --border-primary: #2d2d2d;
+            --border-secondary: #404040;
             --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-            --shadow-lg: 0 8px 16px rgba(0,0,0,0.5);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.5);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.6);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.7);
             --accent-blue: #90cdf4;
             --accent-green: #68d391;
             --accent-red: #fc8181;
@@ -89,7 +101,7 @@
             --action-delete-text: #fc8181;
             --action-deactivate-bg: rgba(246, 173, 85, 0.2);
             --action-deactivate-text: #f6ad55;
-            --change-detail-bg: #374151;
+            --change-detail-bg: #141414;
             --change-detail-border: #90cdf4;
             --old-value-bg: rgba(252, 129, 129, 0.1);
             --old-value-text: #fc8181;
@@ -99,24 +111,37 @@
             --user-tag-bg: rgba(144, 205, 244, 0.15);
             --user-tag-text: #90cdf4;
             --timestamp-color: #cbd5e0;
-            --table-header-bg: #374151;
+            --table-header-bg: #141414;
             --table-header-text: #e2e8f0;
-            --table-border: #4a5568;
-            --filter-control-bg: #374151;
-            --filter-control-border: #4a5568;
+            --table-border: #2d2d2d;
+            --filter-control-bg: #141414;
+            --filter-control-border: #2d2d2d;
             --filter-control-focus: #90cdf4;
-            --filter-status-bg: #374151;
+            --filter-status-bg: #141414;
             --filter-status-text: #cbd5e0;
-            --btn-secondary-bg: #374151;
+            --btn-secondary-bg: #141414;
             --btn-secondary-text: #e2e8f0;
-            --btn-secondary-hover: #4a5568;
+            --btn-secondary-hover: #2d2d2d;
             --btn-info-bg: rgba(144, 205, 244, 0.2);
             --btn-info-text: #90cdf4;
             --btn-info-hover: rgba(144, 205, 244, 0.3);
-            --timeline-line: #4a5568;
-            --timeline-marker-bg: #2d3748;
+            --timeline-line: #2d2d2d;
+            --timeline-marker-bg: #0a0a0a;
             --timeline-marker-border: #90cdf4;
-            --timeline-content-bg: #374151;
+            --timeline-content-bg: #141414;
+        }
+        
+        /* Hide body until styles are loaded to prevent any flash */
+        body {
+            visibility: hidden;
+            opacity: 0;
+        }
+        
+        /* Show body after styles are ready */
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.3s ease;
         }
         
         * {
@@ -206,6 +231,10 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         
+        [data-theme="dark"] .theme-toggle-slider {
+            background: #000000;
+        }
+        
         .theme-toggle input:checked ~ .theme-toggle-slider {
             transform: translateX(24px);
         }
@@ -276,6 +305,10 @@
             outline: none;
             border-color: var(--filter-control-focus);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        [data-theme="dark"] .filter-control:focus {
+            box-shadow: 0 0 0 3px rgba(144, 205, 244, 0.1);
         }
         
         .btn {
@@ -774,13 +807,20 @@
     </div>
     
     <script>
+        // Show body after everything is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('loaded');
+            // Initialize filter status on page load
+            const rows = document.querySelectorAll('#auditTableBody tr');
+            updateFilterStatus(rows.length, 0);
+        });
+        
         // Theme Management
         const themeToggle = document.getElementById('themeToggle');
         const htmlElement = document.documentElement;
         
-        // Load saved theme preference
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        htmlElement.setAttribute('data-theme', currentTheme);
+        // Theme is already set in the head, just sync the toggle
+        const currentTheme = htmlElement.getAttribute('data-theme') || 'light';
         themeToggle.checked = currentTheme === 'dark';
         
         // Handle theme toggle
@@ -945,12 +985,6 @@
                 modal.style.display = 'none';
             }
         }
-        
-        // Initialize filter status on page load
-        window.addEventListener('DOMContentLoaded', function() {
-            const rows = document.querySelectorAll('#auditTableBody tr');
-            updateFilterStatus(rows.length, 0);
-        });
     </script>
 </body>
 </html>

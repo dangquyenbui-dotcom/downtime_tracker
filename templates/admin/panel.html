@@ -1,11 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Admin Panel - Downtime Tracker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- CRITICAL: Apply theme BEFORE page renders to prevent flash -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    
     <style>
         /* Theme Variables */
         :root {
+            /* Light Theme (Default) */
             --bg-primary: #f5f5f5;
             --bg-secondary: #ffffff;
             --bg-tertiary: #f7fafc;
@@ -29,28 +40,42 @@
             --stat-label-color: #718096;
         }
         
+        /* Dark Theme - TRUE BLACK for OLED */
         [data-theme="dark"] {
-            --bg-primary: #1a202c;
-            --bg-secondary: #2d3748;
-            --bg-tertiary: #374151;
-            --bg-hover: #374151;
-            --text-primary: #f7fafc;
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #141414;
+            --bg-hover: #1a1a1a;
+            --text-primary: #ffffff;
             --text-secondary: #e2e8f0;
             --text-tertiary: #cbd5e0;
             --text-muted: #718096;
-            --border-primary: #4a5568;
-            --border-secondary: #718096;
+            --border-primary: #2d2d2d;
+            --border-secondary: #404040;
             --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --gradient-subtle: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-            --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-            --shadow-lg: 0 8px 16px rgba(0,0,0,0.5);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.5);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.6);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.7);
             --accent-blue: #90cdf4;
             --accent-green: #68d391;
             --accent-orange: #f6ad55;
             --accent-purple: #b794f4;
             --stat-value-color: #90cdf4;
             --stat-label-color: #cbd5e0;
+        }
+        
+        /* Hide body until styles are loaded to prevent any flash */
+        body {
+            visibility: hidden;
+            opacity: 0;
+        }
+        
+        /* Show body after styles are ready */
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.3s ease;
         }
         
         * {
@@ -136,6 +161,10 @@
             border-radius: 50%;
             transition: transform 0.3s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        [data-theme="dark"] .theme-toggle-slider {
+            background: #000000;
         }
         
         .theme-toggle input:checked ~ .theme-toggle-slider {
@@ -301,26 +330,6 @@
             <p>Manage facilities, production lines, and view system audit logs</p>
         </div>
         
-        <!-- Optional: Add statistics bar -->
-        <div class="stats-bar" id="statsBar" style="display: none;">
-            <div class="stat-item">
-                <div class="stat-value" id="totalFacilities">0</div>
-                <div class="stat-label">Total Facilities</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="totalLines">0</div>
-                <div class="stat-label">Production Lines</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="todayChanges">0</div>
-                <div class="stat-label">Changes Today</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="activeUsers">0</div>
-                <div class="stat-label">Active Admins</div>
-            </div>
-        </div>
-        
         <div class="admin-grid">
             <a href="/admin/facilities" class="admin-card">
                 <div class="admin-icon">🏭</div>
@@ -361,13 +370,17 @@
     </div>
     
     <script>
+        // Show body after everything is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('loaded');
+        });
+        
         // Theme Management
         const themeToggle = document.getElementById('themeToggle');
         const htmlElement = document.documentElement;
         
-        // Load saved theme preference
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        htmlElement.setAttribute('data-theme', currentTheme);
+        // Theme is already set in the head, just sync the toggle
+        const currentTheme = htmlElement.getAttribute('data-theme') || 'light';
         themeToggle.checked = currentTheme === 'dark';
         
         // Handle theme toggle
