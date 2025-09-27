@@ -77,6 +77,33 @@
             flex-wrap: wrap;
         }
         
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .filter-select {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            min-width: 120px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .filter-select:hover {
+            border-color: #cbd5e0;
+        }
+        
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
         .btn {
             padding: 12px 20px;
             border: none;
@@ -97,16 +124,6 @@
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        
-        .btn-success {
-            background: linear-gradient(135deg, #48bb78, #38a169);
-            color: white;
-        }
-        
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
         }
         
         .btn-secondary {
@@ -136,6 +153,10 @@
         
         .category-group:last-child {
             border-bottom: none;
+        }
+        
+        .category-group.hidden {
+            display: none;
         }
         
         .main-category {
@@ -262,6 +283,10 @@
         
         .sub-category:hover {
             background: #f7fafc;
+        }
+        
+        .sub-category.hidden {
+            display: none;
         }
         
         .category-actions {
@@ -468,6 +493,11 @@
             color: #718096;
         }
         
+        .category-count {
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
         @media (max-width: 768px) {
             .navbar {
                 flex-direction: column;
@@ -482,6 +512,11 @@
             .actions-bar {
                 flex-direction: column;
                 align-items: stretch;
+            }
+            
+            .filter-section {
+                width: 100%;
+                justify-content: space-between;
             }
             
             .form-row {
@@ -542,23 +577,25 @@
         </div>
         
         <div class="actions-bar">
-            <div>
-                <strong id="categoryCount">{{ categories|length }}</strong> main categories configured
+            <div class="filter-section">
+                <div>
+                    <span class="category-count"><span id="visibleCount">{{ categories|length }}</span></span> main categories
+                </div>
+                <select class="filter-select" id="statusFilter" onchange="filterCategories()">
+                    <option value="active">Active</option>
+                    <option value="all">All</option>
+                    <option value="inactive">Inactive</option>
+                </select>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-success" onclick="initializeStandard()">
-                    📋 Initialize Standard Categories
-                </button>
-                <button class="btn btn-primary" onclick="openAddModal()">
-                    + Add New Category
-                </button>
-            </div>
+            <button class="btn btn-primary" onclick="openAddModal()">
+                + Add New Category
+            </button>
         </div>
         
         <div class="categories-container">
             {% if categories %}
                 {% for category in categories %}
-                <div class="category-group">
+                <div class="category-group" data-status="{{ 'active' if category.is_active else 'inactive' }}">
                     <div class="main-category" onclick="toggleSubcategories({{ category.category_id }})">
                         <div class="category-info">
                             <span class="expand-icon" id="expand-{{ category.category_id }}">▶</span>
@@ -589,7 +626,7 @@
                     {% if category.subcategories %}
                     <div class="subcategories" id="subcategories-{{ category.category_id }}">
                         {% for sub in category.subcategories %}
-                        <div class="sub-category">
+                        <div class="sub-category" data-status="{{ 'active' if sub.is_active else 'inactive' }}">
                             <div class="category-info">
                                 <span class="category-code">{{ sub.category_code }}</span>
                                 <span class="category-name">{{ sub.category_name }}</span>
@@ -623,10 +660,7 @@
             <div class="empty-state">
                 <div class="empty-state-icon">📊</div>
                 <h3>No categories configured</h3>
-                <p>Get started by initializing standard categories or creating your own</p>
-                <button class="btn btn-success" onclick="initializeStandard()" style="margin-top: 20px;">
-                    📋 Initialize Standard Categories
-                </button>
+                <p>Get started by creating your first downtime category</p>
             </div>
             {% endif %}
         </div>
@@ -747,6 +781,50 @@
     </div>
     
     <script>
+        // Filter categories by status
+        function filterCategories() {
+            const filter = document.getElementById('statusFilter').value;
+            const categoryGroups = document.querySelectorAll('.category-group');
+            let visibleCount = 0;
+            
+            categoryGroups.forEach(group => {
+                const status = group.getAttribute('data-status');
+                const subcategories = group.querySelectorAll('.sub-category');
+                
+                if (filter === 'all' || filter === status) {
+                    group.classList.remove('hidden');
+                    visibleCount++;
+                    
+                    // Show/hide subcategories based on their status
+                    subcategories.forEach(sub => {
+                        const subStatus = sub.getAttribute('data-status');
+                        if (filter === 'all' || filter === subStatus) {
+                            sub.classList.remove('hidden');
+                        } else {
+                            sub.classList.add('hidden');
+                        }
+                    });
+                } else {
+                    group.classList.add('hidden');
+                }
+            });
+            
+            // Update count
+            document.getElementById('visibleCount').textContent = visibleCount;
+            
+            // Show empty state if no categories visible
+            const container = document.querySelector('.categories-container');
+            if (visibleCount === 0 && !container.querySelector('.empty-state')) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <h3>No ${filter} categories found</h3>
+                        <p>Try changing the filter or adding new categories</p>
+                    </div>
+                `;
+            }
+        }
+        
         // Toggle subcategories display
         function toggleSubcategories(categoryId) {
             const subcategories = document.getElementById('subcategories-' + categoryId);
@@ -804,27 +882,6 @@
             setTimeout(() => {
                 alertsDiv.innerHTML = '';
             }, 5000);
-        }
-        
-        // Initialize standard categories
-        function initializeStandard() {
-            if (confirm('This will add standard manufacturing downtime categories. Existing categories will not be affected. Continue?')) {
-                fetch('/admin/categories/init-standard', {
-                    method: 'POST'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showAlert(data.message, 'success');
-                        setTimeout(() => location.reload(), 2000);
-                    } else {
-                        showAlert(data.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    showAlert('Error initializing categories', 'error');
-                });
-            }
         }
         
         // Add category form
@@ -909,6 +966,11 @@
         // Auto-format category code to uppercase
         document.getElementById('category_code').addEventListener('input', function(e) {
             e.target.value = e.target.value.toUpperCase();
+        });
+        
+        // Initialize filter on page load (default to Active)
+        window.addEventListener('DOMContentLoaded', function() {
+            filterCategories();
         });
     </script>
 </body>

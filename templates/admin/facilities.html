@@ -74,6 +74,34 @@
             align-items: center;
             margin-bottom: 20px;
             gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .filter-select {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            min-width: 120px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .filter-select:hover {
+            border-color: #cbd5e0;
+        }
+        
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
         .btn {
@@ -147,8 +175,16 @@
             border-bottom: 1px solid #e2e8f0;
         }
         
+        .table tbody tr {
+            transition: background 0.2s;
+        }
+        
         .table tbody tr:hover {
             background: #f7fafc;
+        }
+        
+        .table tbody tr.hidden {
+            display: none;
         }
         
         .status-badge {
@@ -173,6 +209,11 @@
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+        }
+        
+        .facility-count {
+            font-weight: 600;
+            color: #4a5568;
         }
         
         .modal {
@@ -438,6 +479,11 @@
                 align-items: stretch;
             }
             
+            .filter-section {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
             .table {
                 font-size: 14px;
             }
@@ -473,8 +519,15 @@
         <div id="alerts"></div>
         
         <div class="actions-bar">
-            <div>
-                <strong>{{ facilities|length }}</strong> facilities configured
+            <div class="filter-section">
+                <div>
+                    <span class="facility-count"><span id="visibleCount">{{ facilities|selectattr('is_active')|list|length }}</span></span> facilities
+                </div>
+                <select class="filter-select" id="statusFilter" onchange="filterFacilities()">
+                    <option value="active">Active</option>
+                    <option value="all">All</option>
+                    <option value="inactive">Inactive</option>
+                </select>
             </div>
             <button class="btn btn-primary" onclick="openAddModal()">
                 + Add New Facility
@@ -494,9 +547,9 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="facilitiesTableBody">
                     {% for facility in facilities %}
-                    <tr>
+                    <tr data-status="{{ 'active' if facility.is_active else 'inactive' }}">
                         <td>
                             <strong>{{ facility.facility_name }}</strong>
                         </td>
@@ -611,6 +664,43 @@
     </div>
     
     <script>
+        // Filter facilities by status
+        function filterFacilities() {
+            const filter = document.getElementById('statusFilter').value;
+            const rows = document.querySelectorAll('#facilitiesTableBody tr');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const status = row.getAttribute('data-status');
+                
+                if (filter === 'all' || filter === status) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            // Update count
+            document.getElementById('visibleCount').textContent = visibleCount;
+            
+            // Show empty state if no facilities visible
+            const tableBody = document.getElementById('facilitiesTableBody');
+            if (visibleCount === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `
+                    <td colspan="6" style="text-align: center; padding: 60px 20px;">
+                        <div class="empty-state" style="margin: 0;">
+                            <div class="empty-state-icon">🏭</div>
+                            <h3>No ${filter} facilities found</h3>
+                            <p>Try changing the filter or adding new facilities</p>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(emptyRow);
+            }
+        }
+        
         // Modal functions
         function openAddModal() {
             document.getElementById('addModal').style.display = 'block';
@@ -807,6 +897,11 @@
                 });
             }
         }
+        
+        // Initialize filter on page load (default to Active)
+        window.addEventListener('DOMContentLoaded', function() {
+            filterFacilities();
+        });
     </script>
 </body>
 </html>

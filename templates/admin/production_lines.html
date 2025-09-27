@@ -74,20 +74,40 @@
             align-items: center;
             margin-bottom: 20px;
             gap: 20px;
+            flex-wrap: wrap;
         }
         
         .filters {
             display: flex;
             gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
         }
         
         .filter-select {
-            padding: 8px 12px;
+            padding: 10px 15px;
             border: 2px solid #e2e8f0;
-            border-radius: 6px;
+            border-radius: 8px;
             background: white;
             font-size: 14px;
+            min-width: 120px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .filter-select:hover {
+            border-color: #cbd5e0;
+        }
+        
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .line-count {
+            font-weight: 600;
+            color: #4a5568;
         }
         
         .btn {
@@ -153,8 +173,16 @@
             vertical-align: top;
         }
         
+        .table tbody tr {
+            transition: background 0.2s;
+        }
+        
         .table tbody tr:hover {
             background: #f7fafc;
+        }
+        
+        .table tbody tr.hidden {
+            display: none;
         }
         
         .facility-tag {
@@ -340,17 +368,17 @@
             }
             
             .filters {
-                justify-content: center;
-                margin-bottom: 15px;
+                justify-content: space-between;
+                width: 100%;
             }
             
             .table {
-                font-size: 14px;
+                font-size: 12px;
             }
             
             .table th,
             .table td {
-                padding: 12px 10px;
+                padding: 10px;
             }
         }
     </style>
@@ -376,15 +404,23 @@
         
         <div class="actions-bar">
             <div class="filters">
-                <label for="facilityFilter" style="margin-right: 8px; font-weight: 500;">Filter:</label>
+                <label for="facilityFilter" style="margin-right: 8px; font-weight: 500;">Facility:</label>
                 <select id="facilityFilter" class="filter-select" onchange="filterLines()">
                     <option value="">All Facilities</option>
                     {% for facility in facilities %}
                     <option value="{{ facility.facility_id }}">{{ facility.facility_name }}</option>
                     {% endfor %}
                 </select>
-                <span style="color: #718096; font-size: 14px;">
-                    <strong id="lineCount">{{ lines|length }}</strong> lines configured
+                
+                <label for="statusFilter" style="margin-left: 15px; margin-right: 8px; font-weight: 500;">Status:</label>
+                <select id="statusFilter" class="filter-select" onchange="filterLines()">
+                    <option value="active">Active</option>
+                    <option value="all">All</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+                
+                <span class="line-count" style="margin-left: 15px;">
+                    <span id="lineCount">{{ lines|selectattr('is_active')|list|length }}</span> lines
                 </span>
             </div>
             {% if facilities %}
@@ -413,7 +449,8 @@
                 </thead>
                 <tbody id="linesTableBody">
                     {% for line in lines %}
-                    <tr data-facility="{{ line.facility_id if line.facility_id else 0 }}">
+                    <tr data-facility="{{ line.facility_id if line.facility_id else 0 }}" 
+                        data-status="{{ 'active' if line.is_active else 'inactive' }}">
                         <td>
                             <span class="facility-tag">{{ line.facility_name or 'Unknown' }}</span>
                         </td>
@@ -522,6 +559,60 @@
     </div>
     
     <script>
+        // Filter production lines by facility and status
+        function filterLines() {
+            const facilityId = document.getElementById('facilityFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const rows = document.querySelectorAll('#linesTableBody tr');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const rowFacilityId = row.getAttribute('data-facility');
+                const rowStatus = row.getAttribute('data-status');
+                
+                let showByFacility = !facilityId || rowFacilityId === facilityId;
+                let showByStatus = statusFilter === 'all' || statusFilter === rowStatus;
+                
+                if (showByFacility && showByStatus) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            document.getElementById('lineCount').textContent = visibleCount;
+            
+            // Show empty state if no lines visible
+            const tableBody = document.getElementById('linesTableBody');
+            if (visibleCount === 0 && tableBody) {
+                // Remove any existing empty state row
+                const existingEmptyRow = tableBody.querySelector('.empty-row');
+                if (existingEmptyRow) {
+                    existingEmptyRow.remove();
+                }
+                
+                const emptyRow = document.createElement('tr');
+                emptyRow.className = 'empty-row';
+                emptyRow.innerHTML = `
+                    <td colspan="6" style="text-align: center; padding: 60px 20px;">
+                        <div class="empty-state" style="margin: 0;">
+                            <div class="empty-state-icon">⚙️</div>
+                            <h3>No matching production lines found</h3>
+                            <p>Try changing the filters</p>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(emptyRow);
+            } else {
+                // Remove empty state row if it exists
+                const emptyRow = tableBody?.querySelector('.empty-row');
+                if (emptyRow) {
+                    emptyRow.remove();
+                }
+            }
+        }
+        
         // Modal functions
         function openAddModal() {
             document.getElementById('addModal').style.display = 'block';
@@ -545,25 +636,6 @@
             if (event.target.classList.contains('modal')) {
                 event.target.style.display = 'none';
             }
-        }
-        
-        // Filter production lines by facility
-        function filterLines() {
-            const facilityId = document.getElementById('facilityFilter').value;
-            const rows = document.querySelectorAll('#linesTableBody tr');
-            let visibleCount = 0;
-            
-            rows.forEach(row => {
-                const rowFacilityId = row.getAttribute('data-facility');
-                if (!facilityId || rowFacilityId === facilityId) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            document.getElementById('lineCount').textContent = visibleCount;
         }
         
         // Show alert messages
@@ -646,6 +718,11 @@
                 });
             }
         }
+        
+        // Initialize filters on page load (default to Active)
+        window.addEventListener('DOMContentLoaded', function() {
+            filterLines();
+        });
     </script>
 </body>
 </html>
