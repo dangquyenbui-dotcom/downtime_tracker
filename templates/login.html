@@ -4,16 +4,89 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In - Downtime Tracker</title>
+    
+    <!-- CRITICAL: Apply theme BEFORE page renders to prevent flash -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    
     <style>
+        /* Theme Variables */
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --text-tertiary: #718096;
+            --border-primary: #e2e8f0;
+            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.3);
+            --input-bg: #f7fafc;
+            --input-focus-bg: #ffffff;
+            --accent-blue: #667eea;
+            --alert-error-bg: #fed7d7;
+            --alert-error-text: #9b2c2c;
+            --alert-error-border: #fc8181;
+            --alert-info-bg: #bee3f8;
+            --alert-info-text: #2a4e7c;
+            --alert-info-border: #90cdf4;
+            --domain-info-bg: #f7fafc;
+            --domain-info-border: #e2e8f0;
+            --domain-info-text: #4a5568;
+            --help-text-border: #e2e8f0;
+        }
+        
+        /* Dark Theme - TRUE BLACK for OLED */
+        [data-theme="dark"] {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-gradient: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-tertiary: #cbd5e0;
+            --border-primary: #2d2d2d;
+            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.9);
+            --input-bg: #1a1a1a;
+            --input-focus-bg: #0a0a0a;
+            --accent-blue: #90cdf4;
+            --alert-error-bg: rgba(252, 129, 129, 0.1);
+            --alert-error-text: #fc8181;
+            --alert-error-border: #fc8181;
+            --alert-info-bg: rgba(144, 205, 244, 0.1);
+            --alert-info-text: #90cdf4;
+            --alert-info-border: #90cdf4;
+            --domain-info-bg: #1a1a1a;
+            --domain-info-border: #2d2d2d;
+            --domain-info-text: #cbd5e0;
+            --help-text-border: #2d2d2d;
+        }
+        
+        /* Hide body until styles are loaded to prevent any flash */
+        body {
+            visibility: hidden;
+            opacity: 0;
+        }
+        
+        /* Show body after styles are ready */
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--bg-gradient);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -21,14 +94,92 @@
             padding: 20px;
         }
         
-        .login-container {
+        /* Dark mode gradient overlay for better contrast */
+        [data-theme="dark"] body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* Theme Toggle - Floating in corner */
+        .theme-toggle-float {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 50px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        [data-theme="dark"] .theme-toggle-float {
+            background: rgba(26, 26, 26, 0.8);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .theme-icon {
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        .theme-toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 34px;
+            cursor: pointer;
+        }
+        
+        [data-theme="dark"] .theme-toggle {
+            background: rgba(144, 205, 244, 0.3);
+        }
+        
+        .theme-toggle input {
+            display: none;
+        }
+        
+        .theme-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
             background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        [data-theme="dark"] .theme-toggle-slider {
+            background: #000000;
+        }
+        
+        .theme-toggle input:checked ~ .theme-toggle-slider {
+            transform: translateX(24px);
+        }
+        
+        .login-container {
+            background: var(--bg-secondary);
             border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow-xl);
             width: 100%;
             max-width: 420px;
             padding: 40px;
             animation: slideUp 0.4s ease-out;
+            position: relative;
+            z-index: 1;
         }
         
         @keyframes slideUp {
@@ -48,7 +199,7 @@
         }
         
         .logo h1 {
-            color: #2d3748;
+            color: var(--text-primary);
             font-size: 28px;
             font-weight: 700;
             display: flex;
@@ -62,24 +213,24 @@
         }
         
         .logo p {
-            color: #718096;
+            color: var(--text-tertiary);
             margin-top: 8px;
             font-size: 14px;
         }
         
         .domain-info {
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
+            background: var(--domain-info-bg);
+            border: 1px solid var(--domain-info-border);
             border-radius: 6px;
             padding: 10px;
             margin-bottom: 20px;
             text-align: center;
             font-size: 13px;
-            color: #4a5568;
+            color: var(--domain-info-text);
         }
         
         .domain-info strong {
-            color: #2d3748;
+            color: var(--text-primary);
         }
         
         .form-group {
@@ -88,7 +239,7 @@
         
         label {
             display: block;
-            color: #4a5568;
+            color: var(--text-secondary);
             font-weight: 500;
             margin-bottom: 8px;
             font-size: 14px;
@@ -98,19 +249,29 @@
         input[type="password"] {
             width: 100%;
             padding: 12px 16px;
-            border: 2px solid #e2e8f0;
+            border: 2px solid var(--border-primary);
             border-radius: 8px;
             font-size: 16px;
             transition: all 0.3s ease;
-            background: #f7fafc;
+            background: var(--input-bg);
+            color: var(--text-primary);
         }
         
         input[type="text"]:focus,
         input[type="password"]:focus {
             outline: none;
-            border-color: #667eea;
-            background: white;
+            border-color: var(--accent-blue);
+            background: var(--input-focus-bg);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        [data-theme="dark"] input[type="text"]:focus,
+        [data-theme="dark"] input[type="password"]:focus {
+            box-shadow: 0 0 0 3px rgba(144, 205, 244, 0.1);
+        }
+        
+        input::placeholder {
+            color: var(--text-tertiary);
         }
         
         .btn-login {
@@ -156,39 +317,44 @@
         }
         
         .alert-error {
-            background: #fed7d7;
-            color: #9b2c2c;
-            border: 1px solid #fc8181;
+            background: var(--alert-error-bg);
+            color: var(--alert-error-text);
+            border: 1px solid var(--alert-error-border);
         }
         
         .alert-info {
-            background: #bee3f8;
-            color: #2a4e7c;
-            border: 1px solid #90cdf4;
+            background: var(--alert-info-bg);
+            color: var(--alert-info-text);
+            border: 1px solid var(--alert-info-border);
         }
         
         .help-text {
             margin-top: 20px;
             padding-top: 20px;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid var(--help-text-border);
             font-size: 13px;
-            color: #718096;
+            color: var(--text-tertiary);
             text-align: center;
         }
         
         .help-text strong {
-            color: #4a5568;
+            color: var(--text-secondary);
         }
         
-        /* Tablet optimizations */
         @media (max-width: 768px) {
+            .theme-toggle-float {
+                top: 10px;
+                right: 10px;
+                padding: 8px 12px;
+            }
+            
             .login-container {
                 padding: 30px 25px;
             }
             
             input[type="text"],
             input[type="password"] {
-                font-size: 16px; /* Prevents zoom on iOS */
+                font-size: 16px;
                 padding: 14px 16px;
             }
             
@@ -200,6 +366,16 @@
     </style>
 </head>
 <body>
+    <!-- Theme Toggle (floating) -->
+    <div class="theme-toggle-float">
+        <span class="theme-icon">☀️</span>
+        <label class="theme-toggle">
+            <input type="checkbox" id="themeToggle">
+            <span class="theme-toggle-slider"></span>
+        </label>
+        <span class="theme-icon">🌙</span>
+    </div>
+    
     <div class="login-container">
         <div class="logo">
             <h1>
@@ -260,6 +436,35 @@
     </div>
     
     <script>
+        // Show body after everything is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('loaded');
+        });
+        
+        // Theme Management
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
+        
+        // Theme is already set in the head, just sync the toggle
+        const currentTheme = htmlElement.getAttribute('data-theme') || 'light';
+        themeToggle.checked = currentTheme === 'dark';
+        
+        // Handle theme toggle
+        themeToggle.addEventListener('change', function() {
+            const theme = this.checked ? 'dark' : 'light';
+            htmlElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        });
+        
+        // Listen for theme changes from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'theme') {
+                const theme = e.newValue || 'light';
+                htmlElement.setAttribute('data-theme', theme);
+                themeToggle.checked = theme === 'dark';
+            }
+        });
+        
         function handleSubmit(event) {
             const btn = document.getElementById('loginBtn');
             btn.disabled = true;

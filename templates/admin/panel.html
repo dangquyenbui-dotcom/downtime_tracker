@@ -4,22 +4,73 @@
     <title>Admin Panel - Downtime Tracker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        /* Theme Variables */
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f7fafc;
+            --bg-hover: #f7fafc;
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --text-tertiary: #718096;
+            --text-muted: #a0aec0;
+            --border-primary: #e2e8f0;
+            --border-secondary: #cbd5e0;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-subtle: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.15);
+            --accent-blue: #667eea;
+            --accent-green: #48bb78;
+            --accent-orange: #ed8936;
+            --accent-purple: #805ad5;
+            --stat-value-color: #667eea;
+            --stat-label-color: #718096;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #1a202c;
+            --bg-secondary: #2d3748;
+            --bg-tertiary: #374151;
+            --bg-hover: #374151;
+            --text-primary: #f7fafc;
+            --text-secondary: #e2e8f0;
+            --text-tertiary: #cbd5e0;
+            --text-muted: #718096;
+            --border-primary: #4a5568;
+            --border-secondary: #718096;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-subtle: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.5);
+            --accent-blue: #90cdf4;
+            --accent-green: #68d391;
+            --accent-orange: #f6ad55;
+            --accent-purple: #b794f4;
+            --stat-value-color: #90cdf4;
+            --stat-label-color: #cbd5e0;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
+            background: var(--bg-primary);
+            color: var(--text-primary);
         }
         
         .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-primary);
             color: white;
             padding: 15px 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -30,10 +81,15 @@
             font-weight: 600;
         }
         
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
         .nav-links a {
             color: white;
             text-decoration: none;
-            margin-left: 20px;
             padding: 8px 16px;
             border-radius: 5px;
             transition: background 0.2s;
@@ -43,6 +99,49 @@
             background: rgba(255, 255, 255, 0.2);
         }
         
+        /* Theme Toggle */
+        .theme-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+        }
+        
+        .theme-icon {
+            font-size: 18px;
+        }
+        
+        .theme-toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 34px;
+            cursor: pointer;
+        }
+        
+        .theme-toggle input {
+            display: none;
+        }
+        
+        .theme-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .theme-toggle input:checked ~ .theme-toggle-slider {
+            transform: translateX(24px);
+        }
+        
         .container {
             max-width: 1200px;
             margin: 30px auto;
@@ -50,21 +149,22 @@
         }
         
         .header-card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
             padding: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             margin-bottom: 30px;
+            border: 1px solid var(--border-primary);
         }
         
         .header-card h1 {
-            color: #2d3748;
+            color: var(--text-primary);
             font-size: 32px;
             margin-bottom: 10px;
         }
         
         .header-card p {
-            color: #718096;
+            color: var(--text-tertiary);
             font-size: 16px;
         }
         
@@ -76,16 +176,17 @@
         }
         
         .admin-card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
             padding: 30px;
             text-align: center;
             text-decoration: none;
             color: inherit;
             transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             position: relative;
             overflow: hidden;
+            border: 1px solid var(--border-primary);
         }
         
         .admin-card::before {
@@ -95,14 +196,14 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-primary);
             transform: scaleX(0);
             transition: transform 0.3s ease;
         }
         
         .admin-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-lg);
         }
         
         .admin-card:hover::before {
@@ -117,24 +218,25 @@
         .admin-title {
             font-size: 20px;
             font-weight: 600;
-            color: #2d3748;
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
         
         .admin-desc {
             font-size: 14px;
-            color: #718096;
+            color: var(--text-tertiary);
         }
         
         .stats-bar {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             margin-bottom: 30px;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 30px;
+            border: 1px solid var(--border-primary);
         }
         
         .stat-item {
@@ -144,13 +246,13 @@
         .stat-value {
             font-size: 32px;
             font-weight: 700;
-            color: #667eea;
+            color: var(--stat-value-color);
             margin-bottom: 5px;
         }
         
         .stat-label {
             font-size: 14px;
-            color: #718096;
+            color: var(--stat-label-color);
         }
         
         @media (max-width: 768px) {
@@ -161,6 +263,13 @@
             
             .nav-links {
                 margin-top: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .theme-toggle-wrapper {
+                order: -1;
+                margin-bottom: 10px;
             }
             
             .admin-grid {
@@ -173,6 +282,14 @@
     <div class="navbar">
         <h1>⚙️ Admin Panel</h1>
         <div class="nav-links">
+            <div class="theme-toggle-wrapper">
+                <span class="theme-icon">☀️</span>
+                <label class="theme-toggle">
+                    <input type="checkbox" id="themeToggle">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-icon">🌙</span>
+            </div>
             <a href="/dashboard">Dashboard</a>
             <a href="/logout">Logout</a>
         </div>
@@ -223,14 +340,12 @@
                 <div class="admin-desc">View complete history of all system changes</div>
             </a>
             
-            <!-- DOWNTIME CATEGORIES - NOW ENABLED! -->
             <a href="/admin/categories" class="admin-card">
                 <div class="admin-icon">📊</div>
                 <div class="admin-title">Downtime Categories</div>
                 <div class="admin-desc">Define and manage downtime categories</div>
             </a>
             
-            <!-- These are still coming soon -->
             <a href="/admin/shifts" class="admin-card" style="opacity: 0.6; cursor: not-allowed;" onclick="event.preventDefault(); alert('Coming soon!');">
                 <div class="admin-icon">🕐</div>
                 <div class="admin-title">Shift Management</div>
@@ -246,27 +361,30 @@
     </div>
     
     <script>
-        // Optional: Load statistics via AJAX
-        function loadStatistics() {
-            // This would make AJAX calls to get real-time stats
-            // For now, just showing the structure
-            document.getElementById('statsBar').style.display = 'grid';
-            
-            // Example of loading stats (you'd replace with actual AJAX calls)
-            /*
-            fetch('/admin/api/stats')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('totalFacilities').textContent = data.facilities;
-                    document.getElementById('totalLines').textContent = data.lines;
-                    document.getElementById('todayChanges').textContent = data.changes_today;
-                    document.getElementById('activeUsers').textContent = data.active_admins;
-                });
-            */
-        }
+        // Theme Management
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
         
-        // Load statistics when page loads
-        // window.onload = loadStatistics;
+        // Load saved theme preference
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        htmlElement.setAttribute('data-theme', currentTheme);
+        themeToggle.checked = currentTheme === 'dark';
+        
+        // Handle theme toggle
+        themeToggle.addEventListener('change', function() {
+            const theme = this.checked ? 'dark' : 'light';
+            htmlElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        });
+        
+        // Listen for theme changes from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'theme') {
+                const theme = e.newValue || 'light';
+                htmlElement.setAttribute('data-theme', theme);
+                themeToggle.checked = theme === 'dark';
+            }
+        });
     </script>
 </body>
 </html>

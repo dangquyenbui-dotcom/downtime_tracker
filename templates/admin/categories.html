@@ -4,22 +4,145 @@
     <title>Downtime Categories - Admin Panel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        /* Theme Variables */
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f7fafc;
+            --bg-hover: #f7fafc;
+            --bg-modal: rgba(0, 0, 0, 0.5);
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --text-tertiary: #718096;
+            --text-muted: #a0aec0;
+            --border-primary: #e2e8f0;
+            --border-secondary: #cbd5e0;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-subtle: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.15);
+            --accent-blue: #667eea;
+            --accent-green: #22543d;
+            --accent-red: #c53030;
+            --main-category-bg: #f7fafc;
+            --main-category-hover: #edf2f7;
+            --expanded-bg: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
+            --category-code-bg: #2d3748;
+            --category-code-text: white;
+            --sub-category-code-bg: #718096;
+            --sub-category-bg: white;
+            --sub-category-hover: #f7fafc;
+            --notification-badge-bg: #fed7e7;
+            --notification-badge-text: #c53030;
+            --notification-active-bg: #c6f6d5;
+            --notification-active-text: #22543d;
+            --status-active-bg: #c6f6d5;
+            --status-active-text: #2f855a;
+            --status-inactive-bg: #fed7d7;
+            --status-inactive-text: #c53030;
+            --alert-success-bg: #c6f6d5;
+            --alert-success-text: #2f855a;
+            --alert-success-border: #9ae6b4;
+            --alert-error-bg: #fed7d7;
+            --alert-error-text: #c53030;
+            --alert-error-border: #fc8181;
+            --alert-info-bg: #bee3f8;
+            --alert-info-text: #2a4e7c;
+            --alert-info-border: #90cdf4;
+            --legend-box-bg: #f7fafc;
+            --legend-box-border: #e2e8f0;
+            --legend-title-color: #4a5568;
+            --legend-item-color: #718096;
+            --input-bg: #ffffff;
+            --input-border: #e2e8f0;
+            --input-focus-border: #667eea;
+            --btn-secondary-bg: #e2e8f0;
+            --btn-secondary-text: #4a5568;
+            --btn-secondary-hover: #cbd5e0;
+            --modal-close-color: #a0aec0;
+            --modal-close-hover: #4a5568;
+            --expand-icon-color: #718096;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #1a202c;
+            --bg-secondary: #2d3748;
+            --bg-tertiary: #374151;
+            --bg-hover: #374151;
+            --bg-modal: rgba(0, 0, 0, 0.7);
+            --text-primary: #f7fafc;
+            --text-secondary: #e2e8f0;
+            --text-tertiary: #cbd5e0;
+            --text-muted: #718096;
+            --border-primary: #4a5568;
+            --border-secondary: #718096;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-subtle: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.5);
+            --accent-blue: #90cdf4;
+            --accent-green: #68d391;
+            --accent-red: #fc8181;
+            --main-category-bg: #374151;
+            --main-category-hover: #4a5568;
+            --expanded-bg: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            --category-code-bg: #90cdf4;
+            --category-code-text: #1a202c;
+            --sub-category-code-bg: #718096;
+            --sub-category-bg: #2d3748;
+            --sub-category-hover: #374151;
+            --notification-badge-bg: rgba(252, 129, 129, 0.2);
+            --notification-badge-text: #fc8181;
+            --notification-active-bg: rgba(104, 211, 145, 0.2);
+            --notification-active-text: #68d391;
+            --status-active-bg: rgba(104, 211, 145, 0.2);
+            --status-active-text: #68d391;
+            --status-inactive-bg: rgba(252, 129, 129, 0.2);
+            --status-inactive-text: #fc8181;
+            --alert-success-bg: rgba(104, 211, 145, 0.2);
+            --alert-success-text: #68d391;
+            --alert-success-border: #68d391;
+            --alert-error-bg: rgba(252, 129, 129, 0.2);
+            --alert-error-text: #fc8181;
+            --alert-error-border: #fc8181;
+            --alert-info-bg: rgba(144, 205, 244, 0.2);
+            --alert-info-text: #90cdf4;
+            --alert-info-border: #90cdf4;
+            --legend-box-bg: #374151;
+            --legend-box-border: #4a5568;
+            --legend-title-color: #e2e8f0;
+            --legend-item-color: #cbd5e0;
+            --input-bg: #374151;
+            --input-border: #4a5568;
+            --input-focus-border: #90cdf4;
+            --btn-secondary-bg: #374151;
+            --btn-secondary-text: #e2e8f0;
+            --btn-secondary-hover: #4a5568;
+            --modal-close-color: #cbd5e0;
+            --modal-close-hover: #f7fafc;
+            --expand-icon-color: #cbd5e0;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
+            background: var(--bg-primary);
+            color: var(--text-primary);
         }
         
         .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-primary);
             color: white;
             padding: 15px 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -30,10 +153,15 @@
             font-weight: 600;
         }
         
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
         .nav-links a {
             color: white;
             text-decoration: none;
-            margin-left: 20px;
             padding: 8px 16px;
             border-radius: 5px;
             transition: background 0.2s;
@@ -43,6 +171,49 @@
             background: rgba(255, 255, 255, 0.2);
         }
         
+        /* Theme Toggle */
+        .theme-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+        }
+        
+        .theme-icon {
+            font-size: 18px;
+        }
+        
+        .theme-toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 34px;
+            cursor: pointer;
+        }
+        
+        .theme-toggle input {
+            display: none;
+        }
+        
+        .theme-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .theme-toggle input:checked ~ .theme-toggle-slider {
+            transform: translateX(24px);
+        }
+        
         .container {
             max-width: 1400px;
             margin: 30px auto;
@@ -50,21 +221,22 @@
         }
         
         .header-card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
             padding: 25px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             margin-bottom: 30px;
+            border: 1px solid var(--border-primary);
         }
         
         .header-card h1 {
-            color: #2d3748;
+            color: var(--text-primary);
             font-size: 28px;
             margin-bottom: 8px;
         }
         
         .header-card p {
-            color: #718096;
+            color: var(--text-tertiary);
             font-size: 16px;
         }
         
@@ -85,9 +257,10 @@
         
         .filter-select {
             padding: 10px 15px;
-            border: 2px solid #e2e8f0;
+            border: 2px solid var(--input-border);
             border-radius: 8px;
-            background: white;
+            background: var(--input-bg);
+            color: var(--text-primary);
             font-size: 14px;
             min-width: 120px;
             cursor: pointer;
@@ -95,12 +268,12 @@
         }
         
         .filter-select:hover {
-            border-color: #cbd5e0;
+            border-color: var(--border-secondary);
         }
         
         .filter-select:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--input-focus-border);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
@@ -117,7 +290,7 @@
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: var(--gradient-primary);
             color: white;
         }
         
@@ -127,12 +300,12 @@
         }
         
         .btn-secondary {
-            background: #e2e8f0;
-            color: #4a5568;
+            background: var(--btn-secondary-bg);
+            color: var(--btn-secondary-text);
         }
         
         .btn-secondary:hover {
-            background: #cbd5e0;
+            background: var(--btn-secondary-hover);
         }
         
         .btn-sm {
@@ -141,14 +314,15 @@
         }
         
         .categories-container {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             overflow: hidden;
+            border: 1px solid var(--border-primary);
         }
         
         .category-group {
-            border-bottom: 2px solid #f7fafc;
+            border-bottom: 2px solid var(--border-primary);
         }
         
         .category-group:last-child {
@@ -160,7 +334,7 @@
         }
         
         .main-category {
-            background: #f7fafc;
+            background: var(--main-category-bg);
             padding: 20px;
             display: flex;
             align-items: center;
@@ -170,11 +344,11 @@
         }
         
         .main-category:hover {
-            background: #edf2f7;
+            background: var(--main-category-hover);
         }
         
         .main-category.expanded {
-            background: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
+            background: var(--expanded-bg);
         }
         
         .category-info {
@@ -185,8 +359,8 @@
         }
         
         .category-code {
-            background: #2d3748;
-            color: white;
+            background: var(--category-code-bg);
+            color: var(--category-code-text);
             padding: 8px 12px;
             border-radius: 6px;
             font-weight: 700;
@@ -196,7 +370,8 @@
         }
         
         .sub-category .category-code {
-            background: #718096;
+            background: var(--sub-category-code-bg);
+            color: white;
             font-size: 12px;
             padding: 6px 10px;
         }
@@ -204,7 +379,7 @@
         .category-name {
             font-size: 16px;
             font-weight: 600;
-            color: #2d3748;
+            color: var(--text-primary);
             flex: 1;
         }
         
@@ -222,8 +397,8 @@
         }
         
         .notification-badge {
-            background: #fed7e7;
-            color: #c53030;
+            background: var(--notification-badge-bg);
+            color: var(--notification-badge-text);
             padding: 4px 8px;
             border-radius: 12px;
             font-size: 11px;
@@ -232,8 +407,8 @@
         }
         
         .notification-badge.active {
-            background: #c6f6d5;
-            color: #22543d;
+            background: var(--notification-active-bg);
+            color: var(--notification-active-text);
         }
         
         .status-badge {
@@ -245,17 +420,17 @@
         }
         
         .status-active {
-            background: #c6f6d5;
-            color: #2f855a;
+            background: var(--status-active-bg);
+            color: var(--status-active-text);
         }
         
         .status-inactive {
-            background: #fed7d7;
-            color: #c53030;
+            background: var(--status-inactive-bg);
+            color: var(--status-inactive-text);
         }
         
         .expand-icon {
-            color: #718096;
+            color: var(--expand-icon-color);
             font-size: 20px;
             transition: transform 0.2s;
         }
@@ -266,7 +441,7 @@
         
         .subcategories {
             display: none;
-            background: white;
+            background: var(--sub-category-bg);
         }
         
         .subcategories.show {
@@ -275,14 +450,15 @@
         
         .sub-category {
             padding: 15px 20px 15px 60px;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid var(--border-primary);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            background: var(--sub-category-bg);
         }
         
         .sub-category:hover {
-            background: #f7fafc;
+            background: var(--sub-category-hover);
         }
         
         .sub-category.hidden {
@@ -297,7 +473,7 @@
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #718096;
+            color: var(--text-tertiary);
         }
         
         .empty-state-icon {
@@ -308,7 +484,7 @@
         .empty-state h3 {
             font-size: 20px;
             margin-bottom: 8px;
-            color: #4a5568;
+            color: var(--text-secondary);
         }
         
         .alert {
@@ -319,21 +495,21 @@
         }
         
         .alert-success {
-            background: #c6f6d5;
-            color: #2f855a;
-            border: 1px solid #9ae6b4;
+            background: var(--alert-success-bg);
+            color: var(--alert-success-text);
+            border: 1px solid var(--alert-success-border);
         }
         
         .alert-error {
-            background: #fed7d7;
-            color: #c53030;
-            border: 1px solid #fc8181;
+            background: var(--alert-error-bg);
+            color: var(--alert-error-text);
+            border: 1px solid var(--alert-error-border);
         }
         
         .alert-info {
-            background: #bee3f8;
-            color: #2a4e7c;
-            border: 1px solid #90cdf4;
+            background: var(--alert-info-bg);
+            color: var(--alert-info-text);
+            border: 1px solid var(--alert-info-border);
         }
         
         /* Modal Styles */
@@ -345,11 +521,11 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: var(--bg-modal);
         }
         
         .modal-content {
-            background: white;
+            background: var(--bg-secondary);
             margin: 5% auto;
             padding: 30px;
             border-radius: 12px;
@@ -357,6 +533,8 @@
             max-width: 600px;
             position: relative;
             animation: modalSlideIn 0.3s ease-out;
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
         }
         
         @keyframes modalSlideIn {
@@ -371,7 +549,7 @@
         }
         
         .modal h2 {
-            color: #2d3748;
+            color: var(--text-primary);
             margin-bottom: 20px;
             font-size: 24px;
         }
@@ -388,7 +566,7 @@
         
         .form-group label {
             display: block;
-            color: #4a5568;
+            color: var(--text-secondary);
             font-weight: 500;
             margin-bottom: 6px;
             font-size: 14px;
@@ -397,16 +575,17 @@
         .form-control, .form-select {
             width: 100%;
             padding: 10px 14px;
-            border: 2px solid #e2e8f0;
+            border: 2px solid var(--input-border);
             border-radius: 8px;
             font-size: 14px;
             transition: border-color 0.2s;
-            background: white;
+            background: var(--input-bg);
+            color: var(--text-primary);
         }
         
         .form-control:focus, .form-select:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--input-focus-border);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
@@ -420,7 +599,7 @@
             width: 40px;
             height: 40px;
             border-radius: 8px;
-            border: 2px solid #e2e8f0;
+            border: 2px solid var(--border-primary);
         }
         
         input[type="color"] {
@@ -456,18 +635,18 @@
             top: 15px;
             font-size: 28px;
             font-weight: bold;
-            color: #a0aec0;
+            color: var(--modal-close-color);
             cursor: pointer;
             line-height: 1;
         }
         
         .close:hover {
-            color: #4a5568;
+            color: var(--modal-close-hover);
         }
         
         .legend-box {
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
+            background: var(--legend-box-bg);
+            border: 1px solid var(--legend-box-border);
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 20px;
@@ -475,7 +654,7 @@
         
         .legend-title {
             font-weight: 600;
-            color: #4a5568;
+            color: var(--legend-title-color);
             margin-bottom: 10px;
         }
         
@@ -490,12 +669,12 @@
             align-items: center;
             gap: 8px;
             font-size: 13px;
-            color: #718096;
+            color: var(--legend-item-color);
         }
         
         .category-count {
             font-weight: 600;
-            color: #4a5568;
+            color: var(--text-secondary);
         }
         
         @media (max-width: 768px) {
@@ -507,6 +686,13 @@
             
             .nav-links {
                 margin-top: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .theme-toggle-wrapper {
+                order: -1;
+                margin-bottom: 10px;
             }
             
             .actions-bar {
@@ -538,6 +724,14 @@
     <div class="navbar">
         <h1>📊 Downtime Categories</h1>
         <div class="nav-links">
+            <div class="theme-toggle-wrapper">
+                <span class="theme-icon">☀️</span>
+                <label class="theme-toggle">
+                    <input type="checkbox" id="themeToggle">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-icon">🌙</span>
+            </div>
             <a href="/admin">Admin Panel</a>
             <a href="/admin/audit-log">Audit Log</a>
             <a href="/dashboard">Dashboard</a>
@@ -558,11 +752,11 @@
             <div class="legend-title">Category Structure</div>
             <div class="legend-items">
                 <div class="legend-item">
-                    <span style="background: #2d3748; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 600;">XX</span>
+                    <span style="background: var(--category-code-bg); color: var(--category-code-text); padding: 2px 6px; border-radius: 4px; font-weight: 600;">XX</span>
                     Main Category Code
                 </div>
                 <div class="legend-item">
-                    <span style="background: #718096; color: white; padding: 2px 6px; border-radius: 4px;">XX##</span>
+                    <span style="background: var(--sub-category-code-bg); color: white; padding: 2px 6px; border-radius: 4px;">XX##</span>
                     Sub-Category Code
                 </div>
                 <div class="legend-item">
@@ -677,7 +871,7 @@
                         <label for="category_code">Category Code *</label>
                         <input type="text" id="category_code" name="category_code" class="form-control" required 
                                placeholder="e.g., EQ or EQ01" maxlength="4" style="text-transform: uppercase;">
-                        <small style="color: #718096; font-size: 12px;">2 letters for main, 4 chars for sub</small>
+                        <small style="color: var(--text-tertiary); font-size: 12px;">2 letters for main, 4 chars for sub</small>
                     </div>
                     <div class="form-group">
                         <label for="category_name">Category Name *</label>
@@ -741,8 +935,8 @@
                     <div class="form-group">
                         <label>Category Code</label>
                         <input type="text" id="editCategoryCode" class="form-control" disabled 
-                               style="background: #f7fafc; cursor: not-allowed;">
-                        <small style="color: #718096; font-size: 12px;">Code cannot be changed</small>
+                               style="background: var(--bg-tertiary); cursor: not-allowed;">
+                        <small style="color: var(--text-tertiary); font-size: 12px;">Code cannot be changed</small>
                     </div>
                     <div class="form-group">
                         <label for="editCategoryName">Category Name *</label>
@@ -781,6 +975,31 @@
     </div>
     
     <script>
+        // Theme Management
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
+        
+        // Load saved theme preference
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        htmlElement.setAttribute('data-theme', currentTheme);
+        themeToggle.checked = currentTheme === 'dark';
+        
+        // Handle theme toggle
+        themeToggle.addEventListener('change', function() {
+            const theme = this.checked ? 'dark' : 'light';
+            htmlElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        });
+        
+        // Listen for theme changes from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'theme') {
+                const theme = e.newValue || 'light';
+                htmlElement.setAttribute('data-theme', theme);
+                themeToggle.checked = theme === 'dark';
+            }
+        });
+        
         // Filter categories by status
         function filterCategories() {
             const filter = document.getElementById('statusFilter').value;

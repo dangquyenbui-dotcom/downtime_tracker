@@ -4,25 +4,144 @@
     <title>Audit Log - Downtime Tracker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        /* Theme Variables */
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f7fafc;
+            --bg-hover: #f7fafc;
+            --bg-modal: rgba(0, 0, 0, 0.5);
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --text-tertiary: #718096;
+            --text-muted: #a0aec0;
+            --border-primary: #e2e8f0;
+            --border-secondary: #cbd5e0;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.15);
+            --accent-blue: #667eea;
+            --accent-green: #48bb78;
+            --accent-red: #f56565;
+            --action-insert-bg: #c6f6d5;
+            --action-insert-text: #22543d;
+            --action-update-bg: #bee3f8;
+            --action-update-text: #2a4e7c;
+            --action-delete-bg: #fed7d7;
+            --action-delete-text: #742a2a;
+            --action-deactivate-bg: #feebc8;
+            --action-deactivate-text: #7c2d12;
+            --change-detail-bg: #f7fafc;
+            --change-detail-border: #667eea;
+            --old-value-bg: #fff5f5;
+            --old-value-text: #c53030;
+            --new-value-bg: #f0fff4;
+            --new-value-text: #2f855a;
+            --null-value-color: #a0aec0;
+            --user-tag-bg: #667eea15;
+            --user-tag-text: #667eea;
+            --timestamp-color: #718096;
+            --table-header-bg: #f7fafc;
+            --table-header-text: #4a5568;
+            --table-border: #e2e8f0;
+            --filter-control-bg: white;
+            --filter-control-border: #e2e8f0;
+            --filter-control-focus: #667eea;
+            --filter-status-bg: #f7fafc;
+            --filter-status-text: #4a5568;
+            --btn-secondary-bg: #e2e8f0;
+            --btn-secondary-text: #4a5568;
+            --btn-secondary-hover: #cbd5e0;
+            --btn-info-bg: #bee3f8;
+            --btn-info-text: #2a4e7c;
+            --btn-info-hover: #90cdf4;
+            --timeline-line: #e2e8f0;
+            --timeline-marker-bg: white;
+            --timeline-marker-border: #667eea;
+            --timeline-content-bg: #f7fafc;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #1a202c;
+            --bg-secondary: #2d3748;
+            --bg-tertiary: #374151;
+            --bg-hover: #374151;
+            --bg-modal: rgba(0, 0, 0, 0.7);
+            --text-primary: #f7fafc;
+            --text-secondary: #e2e8f0;
+            --text-tertiary: #cbd5e0;
+            --text-muted: #718096;
+            --border-primary: #4a5568;
+            --border-secondary: #718096;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.5);
+            --accent-blue: #90cdf4;
+            --accent-green: #68d391;
+            --accent-red: #fc8181;
+            --action-insert-bg: rgba(104, 211, 145, 0.2);
+            --action-insert-text: #68d391;
+            --action-update-bg: rgba(144, 205, 244, 0.2);
+            --action-update-text: #90cdf4;
+            --action-delete-bg: rgba(252, 129, 129, 0.2);
+            --action-delete-text: #fc8181;
+            --action-deactivate-bg: rgba(246, 173, 85, 0.2);
+            --action-deactivate-text: #f6ad55;
+            --change-detail-bg: #374151;
+            --change-detail-border: #90cdf4;
+            --old-value-bg: rgba(252, 129, 129, 0.1);
+            --old-value-text: #fc8181;
+            --new-value-bg: rgba(104, 211, 145, 0.1);
+            --new-value-text: #68d391;
+            --null-value-color: #718096;
+            --user-tag-bg: rgba(144, 205, 244, 0.15);
+            --user-tag-text: #90cdf4;
+            --timestamp-color: #cbd5e0;
+            --table-header-bg: #374151;
+            --table-header-text: #e2e8f0;
+            --table-border: #4a5568;
+            --filter-control-bg: #374151;
+            --filter-control-border: #4a5568;
+            --filter-control-focus: #90cdf4;
+            --filter-status-bg: #374151;
+            --filter-status-text: #cbd5e0;
+            --btn-secondary-bg: #374151;
+            --btn-secondary-text: #e2e8f0;
+            --btn-secondary-hover: #4a5568;
+            --btn-info-bg: rgba(144, 205, 244, 0.2);
+            --btn-info-text: #90cdf4;
+            --btn-info-hover: rgba(144, 205, 244, 0.3);
+            --timeline-line: #4a5568;
+            --timeline-marker-bg: #2d3748;
+            --timeline-marker-border: #90cdf4;
+            --timeline-content-bg: #374151;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
+            background: var(--bg-primary);
+            color: var(--text-primary);
         }
         
         .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-primary);
             color: white;
             padding: 15px 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
         
         .navbar h1 {
@@ -30,10 +149,15 @@
             font-weight: 600;
         }
         
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
         .nav-links a {
             color: white;
             text-decoration: none;
-            margin-left: 20px;
             padding: 8px 16px;
             border-radius: 5px;
             transition: background 0.2s;
@@ -43,6 +167,49 @@
             background: rgba(255, 255, 255, 0.2);
         }
         
+        /* Theme Toggle */
+        .theme-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+        }
+        
+        .theme-icon {
+            font-size: 18px;
+        }
+        
+        .theme-toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 34px;
+            cursor: pointer;
+        }
+        
+        .theme-toggle input {
+            display: none;
+        }
+        
+        .theme-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .theme-toggle input:checked ~ .theme-toggle-slider {
+            transform: translateX(24px);
+        }
+        
         .container {
             max-width: 1600px;
             margin: 30px auto;
@@ -50,34 +217,36 @@
         }
         
         .header-card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
             padding: 25px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             margin-bottom: 30px;
+            border: 1px solid var(--border-primary);
         }
         
         .header-card h1 {
-            color: #2d3748;
+            color: var(--text-primary);
             font-size: 28px;
             margin-bottom: 8px;
         }
         
         .header-card p {
-            color: #718096;
+            color: var(--text-tertiary);
             font-size: 16px;
         }
         
         .filters-bar {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             margin-bottom: 20px;
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
             align-items: center;
+            border: 1px solid var(--border-primary);
         }
         
         .filter-group {
@@ -88,18 +257,25 @@
         
         .filter-label {
             font-size: 12px;
-            color: #718096;
+            color: var(--text-tertiary);
             font-weight: 600;
             text-transform: uppercase;
         }
         
         .filter-control {
             padding: 8px 12px;
-            border: 2px solid #e2e8f0;
+            border: 2px solid var(--filter-control-border);
             border-radius: 6px;
-            background: white;
+            background: var(--filter-control-bg);
+            color: var(--text-primary);
             font-size: 14px;
             min-width: 150px;
+        }
+        
+        .filter-control:focus {
+            outline: none;
+            border-color: var(--filter-control-focus);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
         .btn {
@@ -113,7 +289,7 @@
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: var(--gradient-primary);
             color: white;
         }
         
@@ -123,10 +299,11 @@
         }
         
         .audit-table {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             overflow-x: auto;
+            border: 1px solid var(--border-primary);
         }
         
         .table {
@@ -135,23 +312,24 @@
         }
         
         .table th {
-            background: #f7fafc;
-            color: #4a5568;
+            background: var(--table-header-bg);
+            color: var(--table-header-text);
             font-weight: 600;
             padding: 15px;
             text-align: left;
-            border-bottom: 2px solid #e2e8f0;
+            border-bottom: 2px solid var(--table-border);
             white-space: nowrap;
         }
         
         .table td {
             padding: 15px;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--table-border);
             vertical-align: top;
+            color: var(--text-primary);
         }
         
         .table tbody tr:hover {
-            background: #f7fafc;
+            background: var(--bg-hover);
         }
         
         .action-badge {
@@ -164,28 +342,28 @@
         }
         
         .action-insert {
-            background: #c6f6d5;
-            color: #22543d;
+            background: var(--action-insert-bg);
+            color: var(--action-insert-text);
         }
         
         .action-update {
-            background: #bee3f8;
-            color: #2a4e7c;
+            background: var(--action-update-bg);
+            color: var(--action-update-text);
         }
         
         .action-delete {
-            background: #fed7d7;
-            color: #742a2a;
+            background: var(--action-delete-bg);
+            color: var(--action-delete-text);
         }
         
         .action-deactivate {
-            background: #feebc8;
-            color: #7c2d12;
+            background: var(--action-deactivate-bg);
+            color: var(--action-deactivate-text);
         }
         
         .change-detail {
-            background: #f7fafc;
-            border-left: 3px solid #667eea;
+            background: var(--change-detail-bg);
+            border-left: 3px solid var(--change-detail-border);
             padding: 8px 12px;
             margin: 5px 0;
             border-radius: 0 4px 4px 0;
@@ -193,29 +371,29 @@
         }
         
         .old-value {
-            color: #c53030;
-            background: #fff5f5;
+            color: var(--old-value-text);
+            background: var(--old-value-bg);
             padding: 2px 6px;
             border-radius: 3px;
             text-decoration: line-through;
         }
         
         .new-value {
-            color: #2f855a;
-            background: #f0fff4;
+            color: var(--new-value-text);
+            background: var(--new-value-bg);
             padding: 2px 6px;
             border-radius: 3px;
             font-weight: 600;
         }
         
         .null-value {
-            color: #a0aec0;
+            color: var(--null-value-color);
             font-style: italic;
         }
         
         .user-tag {
-            background: #667eea15;
-            color: #667eea;
+            background: var(--user-tag-bg);
+            color: var(--user-tag-text);
             padding: 4px 8px;
             border-radius: 12px;
             font-size: 12px;
@@ -223,14 +401,14 @@
         }
         
         .timestamp {
-            color: #718096;
+            color: var(--timestamp-color);
             font-size: 13px;
         }
         
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #718096;
+            color: var(--text-tertiary);
         }
         
         .empty-state-icon {
@@ -241,7 +419,7 @@
         .empty-state h3 {
             font-size: 20px;
             margin-bottom: 8px;
-            color: #4a5568;
+            color: var(--text-secondary);
         }
         
         .history-modal {
@@ -252,12 +430,12 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: var(--bg-modal);
             overflow-y: auto;
         }
         
         .modal-content {
-            background: white;
+            background: var(--bg-secondary);
             margin: 5% auto;
             padding: 30px;
             border-radius: 12px;
@@ -265,6 +443,8 @@
             max-width: 800px;
             position: relative;
             animation: modalSlideIn 0.3s ease-out;
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
         }
         
         @keyframes modalSlideIn {
@@ -281,11 +461,11 @@
         .modal-header {
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #e2e8f0;
+            border-bottom: 2px solid var(--border-primary);
         }
         
         .modal-header h2 {
-            color: #2d3748;
+            color: var(--text-primary);
             font-size: 24px;
         }
         
@@ -295,13 +475,13 @@
             top: 15px;
             font-size: 28px;
             font-weight: bold;
-            color: #a0aec0;
+            color: var(--text-muted);
             cursor: pointer;
             line-height: 1;
         }
         
         .close:hover {
-            color: #4a5568;
+            color: var(--text-secondary);
         }
         
         .timeline {
@@ -316,7 +496,7 @@
             top: 0;
             bottom: 0;
             width: 2px;
-            background: #e2e8f0;
+            background: var(--timeline-line);
         }
         
         .timeline-item {
@@ -331,37 +511,58 @@
             width: 14px;
             height: 14px;
             border-radius: 50%;
-            background: white;
-            border: 3px solid #667eea;
+            background: var(--timeline-marker-bg);
+            border: 3px solid var(--timeline-marker-border);
         }
         
         .timeline-content {
-            background: #f7fafc;
+            background: var(--timeline-content-bg);
             border-radius: 8px;
             padding: 15px;
         }
         
         .timeline-date {
-            color: #718096;
+            color: var(--text-tertiary);
             font-size: 12px;
             margin-bottom: 8px;
         }
         
         .timeline-action {
             font-weight: 600;
-            color: #2d3748;
+            color: var(--text-primary);
             margin-bottom: 5px;
         }
         
         .timeline-details {
-            color: #4a5568;
+            color: var(--text-secondary);
             font-size: 14px;
+        }
+        
+        /* Filter status display */
+        .filter-status {
+            margin-left: auto;
+            padding: 10px 15px;
+            background: var(--filter-status-bg);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--filter-status-text);
         }
         
         @media (max-width: 768px) {
             .navbar {
                 flex-direction: column;
                 text-align: center;
+            }
+            
+            .nav-links {
+                margin-top: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .theme-toggle-wrapper {
+                order: -1;
+                margin-bottom: 10px;
             }
             
             .filters-bar {
@@ -396,6 +597,14 @@
     <div class="navbar">
         <h1>📋 Audit Log</h1>
         <div class="nav-links">
+            <div class="theme-toggle-wrapper">
+                <span class="theme-icon">☀️</span>
+                <label class="theme-toggle">
+                    <input type="checkbox" id="themeToggle">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-icon">🌙</span>
+            </div>
             <a href="/admin">Admin Panel</a>
             <a href="/dashboard">Dashboard</a>
             <a href="/logout">Logout</a>
@@ -444,7 +653,7 @@
                 <label class="filter-label">Date Range</label>
                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                     <input type="date" id="startDateFilter" class="filter-control" onchange="filterAuditLog()" placeholder="Start">
-                    <span style="color: #718096;">to</span>
+                    <span style="color: var(--text-tertiary);">to</span>
                     <input type="date" id="endDateFilter" class="filter-control" onchange="filterAuditLog()" placeholder="End">
                     <select class="filter-control" style="min-width: 120px;" onchange="setDateRange(this.value)">
                         <option value="">Quick select...</option>
@@ -458,8 +667,8 @@
             
             <button class="btn btn-primary" onclick="resetFilters()">Reset Filters</button>
             
-            <div style="margin-left: auto; padding: 10px 15px; background: #f7fafc; border-radius: 6px; font-size: 14px; color: #4a5568;">
-                <span id="filterStatus">Showing all records</span>
+            <div class="filter-status" id="filterStatus">
+                Showing all records
             </div>
         </div>
         
@@ -521,7 +730,7 @@
                                 {% endif %}
                             </div>
                             {% else %}
-                            <span style="color: #a0aec0;">-</span>
+                            <span style="color: var(--text-muted);">-</span>
                             {% endif %}
                         </td>
                         <td>
@@ -529,10 +738,10 @@
                         </td>
                         <td>
                             {% if entry.additional_notes %}
-                            <small style="display: block; margin-bottom: 4px;">{{ entry.additional_notes }}</small>
+                            <small style="display: block; margin-bottom: 4px; color: var(--text-secondary);">{{ entry.additional_notes }}</small>
                             {% endif %}
                             {% if entry.user_ip %}
-                            <small style="color: #a0aec0; display: block;">
+                            <small style="color: var(--text-muted); display: block;">
                                 IP: {{ entry.user_ip }}
                             </small>
                             {% endif %}
@@ -565,6 +774,31 @@
     </div>
     
     <script>
+        // Theme Management
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
+        
+        // Load saved theme preference
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        htmlElement.setAttribute('data-theme', currentTheme);
+        themeToggle.checked = currentTheme === 'dark';
+        
+        // Handle theme toggle
+        themeToggle.addEventListener('change', function() {
+            const theme = this.checked ? 'dark' : 'light';
+            htmlElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        });
+        
+        // Listen for theme changes from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'theme') {
+                const theme = e.newValue || 'light';
+                htmlElement.setAttribute('data-theme', theme);
+                themeToggle.checked = theme === 'dark';
+            }
+        });
+        
         function setDateRange(range) {
             const today = new Date();
             let startDate, endDate;

@@ -4,22 +4,121 @@
     <title>Facilities Management - Downtime Tracker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        /* Theme Variables */
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f7fafc;
+            --bg-hover: #f7fafc;
+            --bg-modal: rgba(0, 0, 0, 0.5);
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --text-tertiary: #718096;
+            --text-muted: #a0aec0;
+            --border-primary: #e2e8f0;
+            --border-secondary: #cbd5e0;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.15);
+            --accent-blue: #667eea;
+            --status-active-bg: #c6f6d5;
+            --status-active-text: #2f855a;
+            --status-inactive-bg: #fed7d7;
+            --status-inactive-text: #c53030;
+            --alert-success-bg: #c6f6d5;
+            --alert-success-text: #2f855a;
+            --alert-success-border: #9ae6b4;
+            --alert-error-bg: #fed7d7;
+            --alert-error-text: #c53030;
+            --alert-error-border: #fc8181;
+            --input-bg: #ffffff;
+            --input-border: #e2e8f0;
+            --input-focus-border: #667eea;
+            --btn-secondary-bg: #e2e8f0;
+            --btn-secondary-text: #4a5568;
+            --btn-secondary-hover: #cbd5e0;
+            --btn-info-bg: #bee3f8;
+            --btn-info-text: #2a4e7c;
+            --btn-info-hover: #90cdf4;
+            --table-header-bg: #f7fafc;
+            --table-header-text: #4a5568;
+            --table-border: #e2e8f0;
+            --modal-close-color: #a0aec0;
+            --modal-close-hover: #4a5568;
+            --timeline-marker-bg: white;
+            --timeline-marker-border: #667eea;
+            --timeline-line: #e2e8f0;
+            --old-value-color: #c53030;
+            --new-value-color: #2f855a;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #1a202c;
+            --bg-secondary: #2d3748;
+            --bg-tertiary: #374151;
+            --bg-hover: #374151;
+            --bg-modal: rgba(0, 0, 0, 0.7);
+            --text-primary: #f7fafc;
+            --text-secondary: #e2e8f0;
+            --text-tertiary: #cbd5e0;
+            --text-muted: #718096;
+            --border-primary: #4a5568;
+            --border-secondary: #718096;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.5);
+            --accent-blue: #90cdf4;
+            --status-active-bg: rgba(104, 211, 145, 0.2);
+            --status-active-text: #68d391;
+            --status-inactive-bg: rgba(252, 129, 129, 0.2);
+            --status-inactive-text: #fc8181;
+            --alert-success-bg: rgba(104, 211, 145, 0.2);
+            --alert-success-text: #68d391;
+            --alert-success-border: #68d391;
+            --alert-error-bg: rgba(252, 129, 129, 0.2);
+            --alert-error-text: #fc8181;
+            --alert-error-border: #fc8181;
+            --input-bg: #374151;
+            --input-border: #4a5568;
+            --input-focus-border: #90cdf4;
+            --btn-secondary-bg: #374151;
+            --btn-secondary-text: #e2e8f0;
+            --btn-secondary-hover: #4a5568;
+            --btn-info-bg: rgba(144, 205, 244, 0.2);
+            --btn-info-text: #90cdf4;
+            --btn-info-hover: rgba(144, 205, 244, 0.3);
+            --table-header-bg: #374151;
+            --table-header-text: #e2e8f0;
+            --table-border: #4a5568;
+            --modal-close-color: #cbd5e0;
+            --modal-close-hover: #f7fafc;
+            --timeline-marker-bg: #2d3748;
+            --timeline-marker-border: #90cdf4;
+            --timeline-line: #4a5568;
+            --old-value-color: #fc8181;
+            --new-value-color: #68d391;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
+            background: var(--bg-primary);
+            color: var(--text-primary);
         }
         
         .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-primary);
             color: white;
             padding: 15px 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -30,10 +129,15 @@
             font-weight: 600;
         }
         
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
         .nav-links a {
             color: white;
             text-decoration: none;
-            margin-left: 20px;
             padding: 8px 16px;
             border-radius: 5px;
             transition: background 0.2s;
@@ -43,6 +147,49 @@
             background: rgba(255, 255, 255, 0.2);
         }
         
+        /* Theme Toggle */
+        .theme-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+        }
+        
+        .theme-icon {
+            font-size: 18px;
+        }
+        
+        .theme-toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 34px;
+            cursor: pointer;
+        }
+        
+        .theme-toggle input {
+            display: none;
+        }
+        
+        .theme-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .theme-toggle input:checked ~ .theme-toggle-slider {
+            transform: translateX(24px);
+        }
+        
         .container {
             max-width: 1200px;
             margin: 30px auto;
@@ -50,21 +197,22 @@
         }
         
         .header-card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
             padding: 25px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             margin-bottom: 30px;
+            border: 1px solid var(--border-primary);
         }
         
         .header-card h1 {
-            color: #2d3748;
+            color: var(--text-primary);
             font-size: 28px;
             margin-bottom: 8px;
         }
         
         .header-card p {
-            color: #718096;
+            color: var(--text-tertiary);
             font-size: 16px;
         }
         
@@ -85,9 +233,10 @@
         
         .filter-select {
             padding: 10px 15px;
-            border: 2px solid #e2e8f0;
+            border: 2px solid var(--input-border);
             border-radius: 8px;
-            background: white;
+            background: var(--input-bg);
+            color: var(--text-primary);
             font-size: 14px;
             min-width: 120px;
             cursor: pointer;
@@ -95,12 +244,12 @@
         }
         
         .filter-select:hover {
-            border-color: #cbd5e0;
+            border-color: var(--border-secondary);
         }
         
         .filter-select:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--input-focus-border);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
@@ -117,7 +266,7 @@
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: var(--gradient-primary);
             color: white;
         }
         
@@ -127,21 +276,21 @@
         }
         
         .btn-secondary {
-            background: #e2e8f0;
-            color: #4a5568;
+            background: var(--btn-secondary-bg);
+            color: var(--btn-secondary-text);
         }
         
         .btn-secondary:hover {
-            background: #cbd5e0;
+            background: var(--btn-secondary-hover);
         }
         
         .btn-info {
-            background: #bee3f8;
-            color: #2a4e7c;
+            background: var(--btn-info-bg);
+            color: var(--btn-info-text);
         }
         
         .btn-info:hover {
-            background: #90cdf4;
+            background: var(--btn-info-hover);
         }
         
         .btn-sm {
@@ -150,10 +299,11 @@
         }
         
         .facilities-table {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             overflow: hidden;
+            border: 1px solid var(--border-primary);
         }
         
         .table {
@@ -162,17 +312,18 @@
         }
         
         .table th {
-            background: #f7fafc;
-            color: #4a5568;
+            background: var(--table-header-bg);
+            color: var(--table-header-text);
             font-weight: 600;
             padding: 15px 20px;
             text-align: left;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--table-border);
         }
         
         .table td {
             padding: 15px 20px;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--table-border);
+            color: var(--text-primary);
         }
         
         .table tbody tr {
@@ -180,7 +331,7 @@
         }
         
         .table tbody tr:hover {
-            background: #f7fafc;
+            background: var(--bg-hover);
         }
         
         .table tbody tr.hidden {
@@ -196,13 +347,13 @@
         }
         
         .status-active {
-            background: #c6f6d5;
-            color: #2f855a;
+            background: var(--status-active-bg);
+            color: var(--status-active-text);
         }
         
         .status-inactive {
-            background: #fed7d7;
-            color: #c53030;
+            background: var(--status-inactive-bg);
+            color: var(--status-inactive-text);
         }
         
         .actions {
@@ -213,7 +364,7 @@
         
         .facility-count {
             font-weight: 600;
-            color: #4a5568;
+            color: var(--text-secondary);
         }
         
         .modal {
@@ -224,11 +375,11 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: var(--bg-modal);
         }
         
         .modal-content {
-            background: white;
+            background: var(--bg-secondary);
             margin: 5% auto;
             padding: 30px;
             border-radius: 12px;
@@ -236,6 +387,8 @@
             max-width: 500px;
             position: relative;
             animation: modalSlideIn 0.3s ease-out;
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
         }
         
         @keyframes modalSlideIn {
@@ -250,7 +403,7 @@
         }
         
         .modal h2 {
-            color: #2d3748;
+            color: var(--text-primary);
             margin-bottom: 20px;
             font-size: 24px;
         }
@@ -261,7 +414,7 @@
         
         .form-group label {
             display: block;
-            color: #4a5568;
+            color: var(--text-secondary);
             font-weight: 500;
             margin-bottom: 6px;
         }
@@ -269,15 +422,17 @@
         .form-control {
             width: 100%;
             padding: 12px 16px;
-            border: 2px solid #e2e8f0;
+            border: 2px solid var(--input-border);
             border-radius: 8px;
             font-size: 14px;
             transition: border-color 0.2s;
+            background: var(--input-bg);
+            color: var(--text-primary);
         }
         
         .form-control:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--input-focus-border);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
@@ -296,21 +451,21 @@
         }
         
         .alert-success {
-            background: #c6f6d5;
-            color: #2f855a;
-            border: 1px solid #9ae6b4;
+            background: var(--alert-success-bg);
+            color: var(--alert-success-text);
+            border: 1px solid var(--alert-success-border);
         }
         
         .alert-error {
-            background: #fed7d7;
-            color: #c53030;
-            border: 1px solid #fc8181;
+            background: var(--alert-error-bg);
+            color: var(--alert-error-text);
+            border: 1px solid var(--alert-error-border);
         }
         
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #718096;
+            color: var(--text-tertiary);
         }
         
         .empty-state-icon {
@@ -321,7 +476,7 @@
         .empty-state h3 {
             font-size: 20px;
             margin-bottom: 8px;
-            color: #4a5568;
+            color: var(--text-secondary);
         }
         
         .close {
@@ -330,13 +485,13 @@
             top: 15px;
             font-size: 28px;
             font-weight: bold;
-            color: #a0aec0;
+            color: var(--modal-close-color);
             cursor: pointer;
             line-height: 1;
         }
         
         .close:hover {
-            color: #4a5568;
+            color: var(--modal-close-hover);
         }
         
         /* History Modal Styles */
@@ -348,12 +503,12 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.6);
+            background: var(--bg-modal);
             overflow-y: auto;
         }
         
         .history-modal-content {
-            background: white;
+            background: var(--bg-secondary);
             margin: 3% auto;
             padding: 0;
             border-radius: 12px;
@@ -365,10 +520,11 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            border: 1px solid var(--border-primary);
         }
         
         .history-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-primary);
             color: white;
             padding: 20px 30px;
             border-radius: 12px 12px 0 0;
@@ -377,12 +533,14 @@
         .history-header h2 {
             margin: 0;
             font-size: 24px;
+            color: white;
         }
         
         .history-body {
             padding: 30px;
             overflow-y: auto;
             flex-grow: 1;
+            color: var(--text-primary);
         }
         
         .timeline {
@@ -397,7 +555,7 @@
             top: 0;
             bottom: 0;
             width: 2px;
-            background: #e2e8f0;
+            background: var(--timeline-line);
         }
         
         .timeline-item {
@@ -412,55 +570,55 @@
             width: 14px;
             height: 14px;
             border-radius: 50%;
-            background: white;
-            border: 3px solid #667eea;
+            background: var(--timeline-marker-bg);
+            border: 3px solid var(--timeline-marker-border);
         }
         
         .timeline-content {
-            background: #f7fafc;
+            background: var(--bg-tertiary);
             border-radius: 8px;
             padding: 15px;
-            border-left: 3px solid #667eea;
+            border-left: 3px solid var(--timeline-marker-border);
         }
         
         .timeline-date {
-            color: #718096;
+            color: var(--text-tertiary);
             font-size: 12px;
             margin-bottom: 8px;
         }
         
         .timeline-action {
             font-weight: 600;
-            color: #2d3748;
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
         
         .timeline-details {
-            color: #4a5568;
+            color: var(--text-secondary);
             font-size: 14px;
         }
         
         .change-item {
-            background: white;
+            background: var(--bg-secondary);
             padding: 8px 12px;
             border-radius: 6px;
             margin-top: 8px;
         }
         
         .old-value {
-            color: #c53030;
+            color: var(--old-value-color);
             text-decoration: line-through;
         }
         
         .new-value {
-            color: #2f855a;
+            color: var(--new-value-color);
             font-weight: 600;
         }
         
         .no-history {
             text-align: center;
             padding: 40px;
-            color: #718096;
+            color: var(--text-tertiary);
         }
         
         @media (max-width: 768px) {
@@ -472,6 +630,13 @@
             
             .nav-links {
                 margin-top: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .theme-toggle-wrapper {
+                order: -1;
+                margin-bottom: 10px;
             }
             
             .actions-bar {
@@ -503,6 +668,14 @@
     <div class="navbar">
         <h1>🏭 Facilities Management</h1>
         <div class="nav-links">
+            <div class="theme-toggle-wrapper">
+                <span class="theme-icon">☀️</span>
+                <label class="theme-toggle">
+                    <input type="checkbox" id="themeToggle">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-icon">🌙</span>
+            </div>
             <a href="/admin">Admin Panel</a>
             <a href="/admin/audit-log">Audit Log</a>
             <a href="/dashboard">Dashboard</a>
@@ -564,13 +737,13 @@
                         <td>
                             {{ facility.created_date.strftime('%Y-%m-%d') if facility.created_date else '-' }}
                             {% if facility.created_by %}
-                            <br><small style="color: #718096;">by {{ facility.created_by }}</small>
+                            <br><small style="color: var(--text-tertiary);">by {{ facility.created_by }}</small>
                             {% endif %}
                         </td>
                         <td>
                             {{ facility.modified_date.strftime('%Y-%m-%d') if facility.modified_date else '-' }}
                             {% if facility.modified_by %}
-                            <br><small style="color: #718096;">by {{ facility.modified_by }}</small>
+                            <br><small style="color: var(--text-tertiary);">by {{ facility.modified_by }}</small>
                             {% endif %}
                         </td>
                         <td>
@@ -664,6 +837,31 @@
     </div>
     
     <script>
+        // Theme Management
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
+        
+        // Load saved theme preference
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        htmlElement.setAttribute('data-theme', currentTheme);
+        themeToggle.checked = currentTheme === 'dark';
+        
+        // Handle theme toggle
+        themeToggle.addEventListener('change', function() {
+            const theme = this.checked ? 'dark' : 'light';
+            htmlElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        });
+        
+        // Listen for theme changes from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'theme') {
+                const theme = e.newValue || 'light';
+                htmlElement.setAttribute('data-theme', theme);
+                themeToggle.checked = theme === 'dark';
+            }
+        });
+        
         // Filter facilities by status
         function filterFacilities() {
             const filter = document.getElementById('statusFilter').value;
@@ -761,7 +959,7 @@
                 const timeStr = date.toLocaleTimeString();
                 
                 // Determine action color
-                let markerColor = '#667eea';
+                let markerColor = 'var(--timeline-marker-border)';
                 if (item.action_type === 'INSERT') markerColor = '#48bb78';
                 if (item.action_type === 'DEACTIVATE') markerColor = '#f56565';
                 

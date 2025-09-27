@@ -1,28 +1,123 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Dashboard - Downtime Tracker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- CRITICAL: Apply theme BEFORE page renders to prevent flash -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    
     <style>
+        /* Theme Variables */
+        :root {
+            /* Light Theme (Default) */
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f7fafc;
+            --bg-hover: #f7fafc;
+            
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --text-tertiary: #718096;
+            --text-muted: #a0aec0;
+            --text-inverse: #ffffff;
+            
+            --border-primary: #e2e8f0;
+            --border-secondary: #cbd5e0;
+            
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-subtle: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
+            
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.15);
+            
+            --accent-blue: #667eea;
+            --accent-green: #48bb78;
+            --accent-orange: #ed8936;
+            --accent-purple: #805ad5;
+            --accent-red: #fc8181;
+            
+            --toggle-bg: #cbd5e0;
+            --toggle-handle: #ffffff;
+        }
+        
+        /* Dark Theme - TRUE BLACK for OLED */
+        [data-theme="dark"] {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #141414;
+            --bg-hover: #1a1a1a;
+            
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-tertiary: #cbd5e0;
+            --text-muted: #718096;
+            --text-inverse: #000000;
+            
+            --border-primary: #2d2d2d;
+            --border-secondary: #404040;
+            
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-subtle: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.5);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.6);
+            --shadow-lg: 0 8px 16px rgba(0,0,0,0.7);
+            
+            --accent-blue: #90cdf4;
+            --accent-green: #68d391;
+            --accent-orange: #f6ad55;
+            --accent-purple: #b794f4;
+            --accent-red: #fc8181;
+            
+            --toggle-bg: #667eea;
+            --toggle-handle: #000000;
+        }
+        
+        /* Hide body until styles are loaded to prevent any flash */
+        body {
+            visibility: hidden;
+            opacity: 0;
+        }
+        
+        /* Show body after styles are ready */
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        
+        /* Base Styles with CSS Variables */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
+            background: var(--bg-primary);
+            color: var(--text-primary);
         }
         
         .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-primary);
             color: white;
             padding: 15px 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
         
         .navbar h1 {
@@ -33,6 +128,7 @@
         .nav-links {
             display: flex;
             gap: 20px;
+            align-items: center;
         }
         
         .nav-links a {
@@ -47,6 +143,59 @@
             background: rgba(255, 255, 255, 0.2);
         }
         
+        /* Theme Toggle Switch */
+        .theme-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+        }
+        
+        .theme-icon {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+        
+        .theme-icon.sun {
+            color: #ffd700;
+        }
+        
+        .theme-icon.moon {
+            color: #b8c5f0;
+        }
+        
+        .theme-toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: var(--toggle-bg);
+            border-radius: 34px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .theme-toggle input {
+            display: none;
+        }
+        
+        .theme-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: var(--toggle-handle);
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .theme-toggle input:checked ~ .theme-toggle-slider {
+            transform: translateX(24px);
+        }
+        
         .container {
             max-width: 1200px;
             margin: 30px auto;
@@ -54,15 +203,16 @@
         }
         
         .welcome-card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
             padding: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             margin-bottom: 25px;
+            border: 1px solid var(--border-primary);
         }
         
         .welcome-card h2 {
-            color: #2d3748;
+            color: var(--text-primary);
             margin-bottom: 20px;
             font-size: 28px;
         }
@@ -78,18 +228,18 @@
         }
         
         .badge-admin {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: var(--gradient-primary);
             color: white;
         }
         
         .badge-user {
-            background: #48bb78;
+            background: var(--accent-green);
             color: white;
         }
         
         .user-info {
-            background: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
-            border: 1px solid #667eea20;
+            background: var(--gradient-subtle);
+            border: 1px solid var(--border-primary);
             border-radius: 8px;
             padding: 20px;
             margin: 20px 0;
@@ -98,7 +248,7 @@
         .info-row {
             display: flex;
             padding: 10px 0;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-primary);
         }
         
         .info-row:last-child {
@@ -107,31 +257,31 @@
         
         .info-label {
             font-weight: 600;
-            color: #4a5568;
+            color: var(--text-secondary);
             width: 150px;
             flex-shrink: 0;
         }
         
         .info-value {
-            color: #2d3748;
+            color: var(--text-primary);
             flex: 1;
         }
         
         .group-tag {
-            background: #f7fafc;
-            border: 1px solid #cbd5e0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-secondary);
             padding: 6px 12px;
             border-radius: 5px;
             font-size: 13px;
-            color: #4a5568;
+            color: var(--text-secondary);
             display: inline-block;
             margin: 2px;
         }
         
         .group-tag.highlight {
-            background: #667eea15;
-            border-color: #667eea;
-            color: #667eea;
+            background: var(--gradient-subtle);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
             font-weight: 600;
         }
         
@@ -144,11 +294,18 @@
         }
         
         .stat-card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
             padding: 20px;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-primary);
+            transition: transform 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
         
         .stat-number {
@@ -157,13 +314,13 @@
             margin-bottom: 5px;
         }
         
-        .stat-number.blue { color: #667eea; }
-        .stat-number.green { color: #48bb78; }
-        .stat-number.orange { color: #ed8936; }
-        .stat-number.purple { color: #805ad5; }
+        .stat-number.blue { color: var(--accent-blue); }
+        .stat-number.green { color: var(--accent-green); }
+        .stat-number.orange { color: var(--accent-orange); }
+        .stat-number.purple { color: var(--accent-purple); }
         
         .stat-label {
-            color: #718096;
+            color: var(--text-tertiary);
             font-size: 14px;
             font-weight: 500;
         }
@@ -176,20 +333,21 @@
         }
         
         .action-card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 10px;
             padding: 25px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             text-align: center;
             transition: transform 0.2s, box-shadow 0.2s;
             cursor: pointer;
             text-decoration: none;
             color: inherit;
+            border: 1px solid var(--border-primary);
         }
         
         .action-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-lg);
         }
         
         .action-icon {
@@ -200,23 +358,32 @@
         .action-title {
             font-size: 18px;
             font-weight: 600;
-            color: #2d3748;
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
         
         .action-desc {
             font-size: 14px;
-            color: #718096;
+            color: var(--text-tertiary);
         }
         
         .action-card.admin {
-            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-            border: 2px solid #667eea30;
+            background: var(--gradient-subtle);
+            border: 2px solid var(--accent-blue);
+        }
+        
+        [data-theme="dark"] .action-card.admin {
+            border-color: var(--accent-blue);
+            background: var(--bg-secondary);
         }
         
         .action-card.logout {
-            background: #fff5f5;
-            border: 2px solid #fc818130;
+            background: var(--bg-secondary);
+            border: 2px solid var(--accent-red);
+        }
+        
+        [data-theme="dark"] .action-card.logout {
+            border-color: var(--accent-red);
         }
         
         .test-mode-banner {
@@ -228,8 +395,18 @@
             text-align: center;
         }
         
+        [data-theme="dark"] .test-mode-banner {
+            background: rgba(237, 137, 54, 0.1);
+            border-color: var(--accent-orange);
+            color: var(--accent-orange);
+        }
+        
         .test-mode-banner strong {
             color: #c05621;
+        }
+        
+        [data-theme="dark"] .test-mode-banner strong {
+            color: var(--accent-orange);
         }
         
         @media (max-width: 768px) {
@@ -240,6 +417,13 @@
             
             .nav-links {
                 margin-top: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .theme-toggle-wrapper {
+                order: -1;
+                margin-bottom: 10px;
             }
             
             .info-row {
@@ -261,6 +445,14 @@
     <div class="navbar">
         <h1>🏭 Downtime Tracker</h1>
         <div class="nav-links">
+            <div class="theme-toggle-wrapper">
+                <span class="theme-icon sun">☀️</span>
+                <label class="theme-toggle">
+                    <input type="checkbox" id="themeToggle">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-icon moon">🌙</span>
+            </div>
             {% if user.is_admin %}
             <a href="/status">System Status</a>
             {% endif %}
@@ -367,5 +559,46 @@
             </a>
         </div>
     </div>
+    
+    <script>
+        // Show body after everything is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('loaded');
+        });
+        
+        // Theme Management
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
+        
+        // Theme is already set in the head, just sync the toggle
+        const currentTheme = htmlElement.getAttribute('data-theme') || 'light';
+        themeToggle.checked = currentTheme === 'dark';
+        
+        // Handle theme toggle
+        themeToggle.addEventListener('change', function() {
+            const theme = this.checked ? 'dark' : 'light';
+            htmlElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            
+            // Notify other tabs/windows about theme change
+            window.dispatchEvent(new CustomEvent('themeChange', { detail: theme }));
+        });
+        
+        // Listen for theme changes from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'theme') {
+                const theme = e.newValue || 'light';
+                htmlElement.setAttribute('data-theme', theme);
+                themeToggle.checked = theme === 'dark';
+            }
+        });
+        
+        // Listen for theme change events
+        window.addEventListener('themeChange', function(e) {
+            const theme = e.detail;
+            htmlElement.setAttribute('data-theme', theme);
+            themeToggle.checked = theme === 'dark';
+        });
+    </script>
 </body>
 </html>
