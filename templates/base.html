@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Downtime Tracker{% endblock %}</title>
+    
+    <!-- CRITICAL: Apply theme BEFORE page renders to prevent flash -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    
+    <!-- Base CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    
+    <!-- Page-specific styles -->
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation Bar (optional - can be overridden) -->
+    <!-- Update the navbar section in base.html -->
+{% block navbar %}
+<div class="navbar">
+    <h1>{% block navbar_title %}🏭 {{ _('Downtime Tracker') }}{% endblock %}</h1>
+    <div class="nav-links">
+        {% if session.user %}
+        <!-- Language Selector -->
+        {% include 'components/language_selector.html' %}
+        
+        <div class="theme-toggle-wrapper">
+            <span class="theme-icon">☀️</span>
+            <label class="theme-toggle">
+                <input type="checkbox" id="themeToggle">
+                <span class="theme-toggle-slider"></span>
+            </label>
+            <span class="theme-icon">🌙</span>
+        </div>
+        {% block nav_links %}
+            {% if session.user.is_admin %}
+            <a href="/admin">{{ _('Admin Panel') }}</a>
+            {% endif %}
+            <a href="/dashboard">{{ _('Dashboard') }}</a>
+            <a href="/logout">{{ _('Logout') }}</a>
+        {% endblock %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+    
+    <!-- Main Content -->
+    {% block container %}
+    <div class="container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div id="alerts">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Page Content -->
+        {% block content %}{% endblock %}
+    </div>
+    {% endblock %}
+    
+    <!-- Base JavaScript -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    
+    <!-- Page-specific scripts -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>
