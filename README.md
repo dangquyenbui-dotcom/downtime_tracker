@@ -1,56 +1,58 @@
-Of course. It's an excellent idea to keep the `README.md` file current with the project's progress. Based on the successful implementation of the editable and persistent scheduling grid, I have updated the documentation to reflect its new capabilities.
-
-Here is the new `README.md` file content for your project.
+Of course. Here is a completely rewritten `README.md` file that reflects the current state and capabilities of your application, including the recent updates for database connectivity and expanded features.
 
 -----
 
-# Downtime Tracker v1.9.0
+# Downtime Tracker & Production Scheduler
 
 ## Overview
 
-A robust, production-ready downtime tracking and production scheduling system built with Flask. This application is designed for factory floor use, optimized for tablet interfaces, and features seamless integration with Active Directory for authentication. It provides a bilingual interface (English/Spanish), enforces a single-session-per-user policy, and includes a scalable reporting and production scheduling module.
+A robust, enterprise-ready web application designed for manufacturing environments, providing a comprehensive suite of tools for tracking production downtime, managing production schedules, and analyzing operational data. Built with Flask, this system is optimized for use on factory floor tablets, features seamless integration with Active Directory for secure authentication, and offers a fully bilingual (English/Spanish) user interface.
 
-The system's architecture is designed for a hybrid data environment. It connects to a **read-only ERP database** for live, high-volume data (like open sales orders) and stores all user-generated data—such as downtime events and scheduling projections—in a separate, fully-controlled local SQL Server database (`ProductionDB`).
+The application's hybrid data architecture connects to a **read-only ERP database** for live production data (like open sales orders) while storing all user-generated data—such as downtime events, scheduling projections, and audit logs—in a separate, fully-controlled local SQL Server database (`ProductionDB`).
 
-**Current Version:** 1.9.0 (Production Scheduling Module - Editable Grid)
+**Current Version:** 1.9.1 (ODBC Driver Resilience Update)
 **Status:** Production Ready
 
 -----
 
 ## 🎯 Core Features
 
+### ✅ Downtime Tracking Module
+
+  * **Tablet-Optimized Interface**: A single-page, responsive form for quick and easy downtime entry on the factory floor.
+  * **Hierarchical Categories**: Define and manage multi-level downtime reasons with color-coding for rapid identification.
+  * **ERP Job Integration**: Associate downtime events directly with specific production jobs pulled from the ERP system.
+  * **Automatic Shift Detection**: The system intelligently identifies and assigns the correct work shift based on the time of entry.
+  * **Real-time Entry Listing**: View a live-updating list of the day's downtime entries for the selected production line.
+
 ### ✅ Production Scheduling Module
 
-  * **Live ERP Data Grid**: Displays all open sales orders from the read-only ERP database in an Excel-like grid that is optimized for desktop and can be scrolled horizontally.
-  * **Editable Projections**: Planners can directly input "No/Low Risk Qty" and "High Risk Qty" values into the grid. Changes are saved instantly and automatically.
-  * **Real-time Financial Calculations**: The corresponding dollar value columns (`$ No/Low Risk Qty`, `$ High Risk`) update immediately on the front-end as quantities are entered.
-  * **Dynamic Filtering**: A client-side filter bar allows for instant filtering by Facility, SO Type, Customer, and "Due to Ship" month without page reloads.
-  * **Dynamic Summary Totals**: Summary cards at the top of the page display real-time totals for key financial metrics, which update automatically as filters are applied.
-  * **Persistent Data Storage**: All planner-entered projections are saved to a dedicated `ScheduleProjections` table in the local `ProductionDB`, ensuring data integrity and separation from the read-only ERP.
-  * **Data Refresh**: A "Refresh Data" button allows the user to pull the latest data from the ERP on demand, with a "Last Updated" timestamp for clarity.
-
-### ✅ Downtime Tracking
-
-  * iPad-optimized, single-page entry form for ease of use on the factory floor.
-  * Hierarchical downtime categories with color-coding for quick identification.
-  * Auto-detection of the current work shift based on the time of entry.
+  * **Live ERP Data Grid**: Displays open sales orders from the read-only ERP database in an Excel-like grid, optimized for wide-screen desktop use.
+  * **Editable Projections**: Planners can directly input "No/Low Risk Qty" and "High Risk Qty" values into the grid, with changes saved instantly and automatically.
+  * **Real-time Financial Calculations**: Corresponding dollar value columns are updated on the front-end as new quantities are entered.
+  * **Persistent Data Storage**: All planner-entered projections are saved to a dedicated `ScheduleProjections` table in the local `ProductionDB`, ensuring data integrity and separation from the ERP.
 
 ### ✅ Reporting & Analytics
 
-  * **Report Hub**: A central `/reports` page that lists all available reports, designed for future scalability.
-  * **Downtime Summary Report**: An initial report with filters for date range, facility, and production line.
-  * **Data Visualization**: Interactive doughnut and bar charts (via Chart.js) to visualize downtime by category and by production line.
+  * **Centralized Report Hub**: A scalable `/reports` page for accessing all available system reports.
+  * **Downtime Summary Report**: An interactive report with filters for date range, facility, and production line, featuring data visualizations for downtime by category and by line using Chart.js.
+
+### ✅ Comprehensive Admin Panel
+
+  * **Full System Management**: A dedicated administrative area to manage Facilities, Production Lines, Downtime Categories, and Shifts.
+  * **User Management**: View user activity, login history, and permissions based on Active Directory group membership.
+  * **Audit Log**: A detailed and filterable log that tracks every change made within the system, providing a complete history of all actions.
 
 ### ✅ Security & Session Management
 
-  * **Active Directory Authentication**: Secure user login using existing company credentials.
-  * **Role-Based Access**: Differentiates between regular Users and Administrators based on AD group membership.
-  * **Single-Session Enforcement**: Prevents a user from being logged in at more than one location simultaneously.
+  * **Active Directory Authentication**: Secure user login using existing corporate credentials.
+  * **Role-Based Access Control**: Differentiates between regular Users and Administrators based on AD group membership, restricting access to sensitive areas.
+  * **Single-Session Enforcement**: Prevents a single user from being logged in at multiple locations simultaneously by invalidating old sessions upon a new login.
 
 ### ✅ Internationalization (i18n)
 
-  * **Bilingual Interface**: Full support for US English and US Spanish, switchable on-the-fly.
-  * **User Preference**: A user's selected language is saved to their profile and persists across sessions.
+  * **Bilingual Interface**: Full, on-the-fly support for US English and US Spanish.
+  * **User Preference Persistence**: A user's selected language is saved to their profile and automatically applied across all sessions.
 
 -----
 
@@ -58,9 +60,10 @@ The system's architecture is designed for a hybrid data environment. It connects
 
 ### Technology Stack
 
-  * **Backend**: Python, Flask, Waitress
-  * **Database**: Microsoft SQL Server (via `pyodbc`) for local application data.
-  * **ERP Connection**: Read-only connection to ERP database (Deacom) via `pyodbc`.
+  * **Backend**: Python, Flask
+  * **Database**:
+      * **Application DB**: Microsoft SQL Server (via `pyodbc`) for all user-generated data.
+      * **ERP Connection**: Read-only connection to ERP database (via `pyodbc`).
   * **Authentication**: Active Directory (via `ldap3`).
   * **Internationalization**: Flask-Babel.
   * **Frontend**: Jinja2, HTML, CSS, JavaScript (with Chart.js).
@@ -76,30 +79,30 @@ downtime_tracker/
 ├── .env                        # Local environment variables
 │
 ├── auth/                       # Active Directory authentication
+│   └── ad_auth.py
 │
 ├── database/                   # Database modules
-│   ├── connection.py           # Main DB connection
-│   ├── erp_connection.py       # ERP DB connection (read-only)
-│   ├── scheduling.py           # Combines ERP and local data
+│   ├── connection.py           # Main application DB connection
+│   ├── erp_connection.py       # ERP DB connection (read-only, multi-driver support)
+│   ├── scheduling.py           # Combines ERP and local data for scheduling
 │   ├── reports.py              # Queries for analytical reports
-│   └── ...                     # (modules for each table)
+│   └── ...                     # (modules for each local table: audit, users, etc.)
 │
 ├── routes/                     # Flask blueprints
 │   ├── main.py
 │   ├── downtime.py
-│   ├── erp_routes.py
+│   ├── scheduling.py
 │   ├── reports.py
-│   ├── scheduling.py           # Routes for the scheduling module
-│   └── admin/                  # Admin panel routes
+│   └── admin/                  # Admin panel blueprints
 │
-├── static/                     # CSS and JavaScript files
+├── static/                     # CSS, JavaScript, and image files
 │
 ├── templates/                  # Jinja2 HTML templates
 │   ├── admin/
 │   ├── components/
 │   ├── downtime/
 │   ├── reports/
-│   ├── scheduling/             # Templates for scheduling
+│   ├── scheduling/
 │   └── base.html
 │
 └── translations/               # Language files for i18n
@@ -107,53 +110,41 @@ downtime_tracker/
 
 -----
 
-## 📊 Database Schema
-
-#### New Table: `ScheduleProjections` (in Local `ProductionDB`)
-
-This table is the writeable layer for the scheduling module. It stores the planner's manual inputs, cleanly separating them from the source ERP data.
-
-```sql
-CREATE TABLE [dbo].[ScheduleProjections](
-	[projection_id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
-	[so_number] [nvarchar](50) NOT NULL,
-	[part_number] [nvarchar](100) NOT NULL,
-	[can_make_no_risk] [decimal](18, 2) NULL,
-	[low_risk] [decimal](18, 2) NULL,
-	[high_risk] [decimal](18, 2) NULL,
-	[updated_by] [nvarchar](100) NULL,
-	[updated_date] [datetime] NULL,
-    CONSTRAINT UQ_ScheduleProjection UNIQUE (so_number, part_number)
-);
-```
-
------
-
 ## 🚀 Installation & Setup
 
 1.  **Install Dependencies**:
+
     ```bash
     pip install -r requirements.txt
     ```
-2.  **Configure Environment**:
-      * Create a `.env` file in the project root.
-      * Populate it with your specific database, ERP, and Active Directory credentials.
-3.  **Database Setup**:
-      * Ensure the main application database (`ProductionDB`) exists on your local SQL Server.
-      * The application will automatically create most tables on first run.
-      * **Important**: You must manually run the `CREATE TABLE [dbo].[ScheduleProjections]` script to add the new table for the scheduling feature.
-4.  **Run the Application**:
+
+2.  **Install ODBC Driver**:
+
+      * **For standard x64 Windows**: Download and install [Microsoft ODBC Driver 17 for SQL Server](https://www.google.com/search?q=https://www.microsoft.com/en-us/download/details.aspx%3Fid%3D56567).
+      * **For Windows on ARM64**: Download and install the **ARM64 version** of the [Microsoft ODBC Driver 18 for SQL Server](https://www.microsoft.com/en-us/download/details.aspx?id=104250).
+
+3.  **Configure Environment**:
+
+      * Create a `.env` file in the project's root directory.
+      * Populate it with your specific database, ERP, and Active Directory credentials. A `  .env.example ` file should be created to guide this process.
+
+4.  **Database Setup**:
+
+      * Ensure the main application database (e.g., `ProductionDB`) exists on your SQL Server.
+      * The application will automatically create all necessary tables (like `AuditLog`, `ScheduleProjections`, `UserLogins`, etc.) on its first run.
+
+5.  **Run the Application**:
+
     ```bash
     python app.py
     ```
+
+    The application will be accessible on your local network at `http://<your-ip-address>:5000`.
 
 -----
 
 ## 🚧 Continuous Actions & Next Steps
 
-  * **Enhance Scheduling UI**:
-      * Add a grand total summary row at the bottom of the grid that also updates dynamically with the filters.
-      * Consider adding visual cues for rows where the planner's projection differs from the original ERP data.
-  * **Build Out OEE Reports**:
-      * Create the necessary SQL queries to fetch production counts and scrap data from the ERP.
-      * Develop a new report page to display the OEE (Availability, Performance, Quality) scores with trend charts.
+  * **Enhance Scheduling UI**: Add a grand total summary row at the bottom of the grid that updates dynamically with filters.
+  * **Build Out OEE Reports**: Develop a new report page to display Overall Equipment Effectiveness (OEE) scores with trend charts.
+  * **Downtime Analytics**: Create more in-depth reports, such as Pareto charts for downtime reasons and trend analysis over time.

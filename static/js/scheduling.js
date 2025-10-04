@@ -20,6 +20,7 @@ function attachAllEventListeners() {
     document.getElementById('soTypeFilter').addEventListener('change', filterGrid);
     document.getElementById('customerFilter').addEventListener('change', filterGrid);
     document.getElementById('dueShipFilter').addEventListener('change', filterGrid);
+    document.getElementById('exportBtn').addEventListener('click', exportVisibleDataToXlsx);
     document.getElementById('refreshBtn').addEventListener('click', () => {
         sessionStorage.setItem('wasRefreshed', 'true');
         window.location.reload();
@@ -348,4 +349,64 @@ function handleCellFocus(e) {
 function handleCellKeyDown(e) {
     if (!/[\d.]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)) { e.preventDefault(); }
     if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+}
+
+// --- EXPORT LOGIC ---
+function exportVisibleDataToXlsx() {
+    const exportBtn = document.getElementById('exportBtn');
+    exportBtn.disabled = true;
+    exportBtn.textContent = '📥 Generating...';
+
+    const headers = Array.from(document.querySelectorAll('.grid-table thead th')).map(th => th.textContent.trim());
+
+    const rows = [];
+    document.querySelectorAll('#schedule-body tr:not(.hidden-row)').forEach(row => {
+        const rowData = [];
+        row.querySelectorAll('td').forEach(cell => {
+            // Exclude the hidden "SO Type" column from the export
+            if (cell.getAttribute('data-field') !== 'SO Type') {
+                rowData.push(cell.textContent.trim());
+            }
+        });
+        rows.push(rowData);
+    });
+
+    if (rows.length === 0) {
+        dtUtils.showAlert('No data to export.', 'info');
+        exportBtn.disabled = false;
+        exportBtn.textContent = '📥 Download XLSX';
+        return;
+    }
+    
+    fetch('/scheduling/api/export-xlsx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ headers, rows })
+    })
+    .then(response => {
+        if (!response.ok) { throw new Error('Network response was not ok.'); }
+        const disposition = response.headers.get('Content-Disposition');
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+        const filename = (matches != null && matches[1]) ? matches[1].replace(/['"]/g, '') : 'schedule_export.xlsx';
+        return Promise.all([response.blob(), filename]);
+    })
+    .then(([blob, filename]) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        exportBtn.disabled = false;
+        exportBtn.textContent = '📥 Download XLSX';
+    })
+    .catch(error => {
+        console.error('Export error:', error);
+        dtUtils.showAlert('An error occurred during the export.', 'error');
+        exportBtn.disabled = false;
+        exportBtn.textContent = '📥 Download XLSX';
+    });
 }

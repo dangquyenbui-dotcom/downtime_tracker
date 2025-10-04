@@ -3,31 +3,51 @@ Dedicated ERP Database Connection Service.
 This is separate from the main application's database connection.
 """
 import pyodbc
+import traceback
 from config import Config
 
 class ERPConnection:
     """Handles a single, persistent connection to the ERP database."""
 
     def __init__(self):
-        self._connection_string = self._build_connection_string()
         self.connection = None
-        try:
-            self.connection = pyodbc.connect(self._connection_string, autocommit=True)
-            print("✅ [ERP_DB] Connection successful.")
-        except pyodbc.Error as e:
-            print(f"❌ [ERP_DB] FATAL: Connection failed: {e}")
+        self._connection_string = None # Store the successful connection string
 
-    def _build_connection_string(self):
-        """Builds the ERP database connection string from .env config."""
-        return (
-            f"DRIVER={{{Config.ERP_DB_DRIVER}}};"
-            f"SERVER={Config.ERP_DB_SERVER},{Config.ERP_DB_PORT};"
-            f"DATABASE={Config.ERP_DB_NAME};"
-            f"UID={Config.ERP_DB_USERNAME};"
-            f"PWD={Config.ERP_DB_PASSWORD};"
-            f"TrustServerCertificate=yes;"
-            f"Connection Timeout={Config.ERP_DB_TIMEOUT};"
-        )
+        # Prioritized list of potential drivers to try
+        drivers_to_try = [
+            Config.ERP_DB_DRIVER,  # First, try the one from .env (e.g., '{ODBC Driver 18 for SQL Server}')
+            '{ODBC Driver 18 for SQL Server}', # Recommended for ARM64 and newer systems
+            '{ODBC Driver 17 for SQL Server}', # A common modern driver
+            '{SQL Server Native Client 11.0}', # Another common one
+            '{SQL Server}' # Older, but often present as a fallback
+        ]
+        
+        # Remove duplicates while preserving order
+        drivers = list(dict.fromkeys(drivers_to_try))
+
+        for driver in drivers:
+            if not driver:
+                continue
+            try:
+                connection_string = (
+                    f"DRIVER={driver};"
+                    f"SERVER={Config.ERP_DB_SERVER},{Config.ERP_DB_PORT};"
+                    f"DATABASE={Config.ERP_DB_NAME};"
+                    f"UID={Config.ERP_DB_USERNAME};"
+                    f"PWD={Config.ERP_DB_PASSWORD};"
+                    f"TrustServerCertificate=yes;"
+                    f"Connection Timeout={Config.ERP_DB_TIMEOUT};"
+                )
+                self.connection = pyodbc.connect(connection_string, autocommit=True)
+                print(f"✅ [ERP_DB] Connection successful using driver: {driver}")
+                self._connection_string = connection_string  # Save the working string
+                break  # Exit loop on successful connection
+            except pyodbc.Error:
+                print(f"ℹ️  [ERP_DB] Driver {driver} failed. Trying next...")
+                continue  # Try the next driver in the list
+        
+        if not self.connection:
+            print(f"❌ [ERP_DB] FATAL: Connection failed. All attempted drivers were unsuccessful.")
 
     def execute_query(self, sql, params=None):
         """Executes a SQL query and returns results as a list of dicts."""
@@ -47,15 +67,14 @@ class ERPConnection:
             return []
         except pyodbc.Error as e:
             print(f"❌ [ERP_DB] Query Failed: {e}")
-            import traceback
             traceback.print_exc()
             return []
         except Exception as e:
             print(f"❌ [ERP_DB] Unexpected error: {e}")
-            import traceback
             traceback.print_exc()
             return []
-            
+
+# --- Singleton instance management ---
 _erp_db_instance = None
 
 def get_erp_db():
@@ -64,7 +83,8 @@ def get_erp_db():
     if _erp_db_instance is None:
         _erp_db_instance = ERPConnection()
     return _erp_db_instance
-    
+
+# --- ERP Service Layer ---
 class ErpService:
     """Contains all business logic for querying the ERP database."""
     
@@ -139,6 +159,8 @@ class ErpService:
     def get_open_order_schedule(self):
         """Executes the full query to get all open order data for scheduling."""
         db = get_erp_db()
+        # The very long SQL query is omitted for brevity but would be included here
+        # For the purpose of this file, we will use the same query as before.
         sql = """
             WITH LatestOrderStatus AS (
                 SELECT 
@@ -320,8 +342,11 @@ class ErpService:
         """
         return db.execute_query(sql)
 
+# --- Singleton instance management ---
 _erp_service_instance = None
+
 def get_erp_service():
+    """Gets the global singleton instance of the ErpService."""
     global _erp_service_instance
     if _erp_service_instance is None:
         _erp_service_instance = ErpService()

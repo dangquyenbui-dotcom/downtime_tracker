@@ -3,11 +3,14 @@ Production Scheduling routes
 Handles display and updates for the production scheduling grid.
 """
 
-from flask import Blueprint, render_template, jsonify, request, session, redirect, url_for, flash
+from flask import Blueprint, render_template, jsonify, request, session, redirect, url_for, flash, send_file
 from auth import require_login, require_admin
 from routes.main import validate_session
 from database import scheduling_db
 import traceback
+import openpyxl
+from io import BytesIO
+from datetime import datetime
 
 # The url_prefix makes this blueprint's routes available under '/scheduling'
 scheduling_bp = Blueprint('scheduling', __name__, url_prefix='/scheduling')
@@ -72,3 +75,65 @@ def update_projection():
     except Exception as e:
         traceback.print_exc()
         return jsonify({'success': False, 'message': 'An internal server error occurred.'}), 500
+
+@scheduling_bp.route('/api/export-xlsx', methods=['POST'])
+@validate_session
+def export_xlsx():
+    """API endpoint to export the visible grid data to an XLSX file."""
+    if not require_login(session) or not require_admin(session):
+        return jsonify({'success': False, 'message': 'Authentication required'}), 401
+
+    try:
+        data = request.get_json()
+        headers = data.get('headers', [])
+        rows = data.get('rows', [])
+
+        if not headers or not rows:
+            return jsonify({'success': False, 'message': 'No data to export'}), 400
+
+        # Create a new workbook and select the active sheet
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Schedule Export"
+
+        # Write headers
+        ws.append(headers)
+        
+        # Write data rows, attempting to convert to numbers
+        for row_data in rows:
+            processed_row = []
+            for cell_value in row_data:
+                # If the value is a string, try to clean and convert it to a number
+                if isinstance(cell_value, str):
+                    cleaned_value = cell_value.replace('$', '').replace(',', '')
+                    try:
+                        # Try converting to float for decimals
+                        processed_row.append(float(cleaned_value))
+                    except (ValueError, TypeError):
+                        # If it fails, it's not a number, so append the original string
+                        processed_row.append(cell_value)
+                else:
+                    # If it's already a number (or None), append it as is
+                    processed_row.append(cell_value)
+            
+            ws.append(processed_row)
+
+        # Save the workbook to a BytesIO object
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"schedule_export_{timestamp}.xlsx"
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': 'An error occurred during export.'}), 500
