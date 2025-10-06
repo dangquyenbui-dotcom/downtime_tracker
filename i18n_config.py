@@ -1,5 +1,5 @@
 """
-Internationalization Configuration for Downtime Tracker
+Internationalization Configuration for Production Portal
 Supports US English and US Spanish
 Compatible with Flask-Babel 3.0+
 """

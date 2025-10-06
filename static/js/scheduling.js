@@ -3,9 +3,17 @@
 document.addEventListener('DOMContentLoaded', function() {
     
     // --- INITIALIZATION ---
-    // Initial population of filters is now handled by filterGrid's call to updateFilterOptions
     attachAllEventListeners();
-    filterGrid(); // Run initial filter to set everything up
+    
+    // 1. Populate filters with all possible options from the full dataset first.
+    updateFilterOptions(); 
+    
+    // 2. Now that all <option> elements exist, restore the saved selections.
+    restoreFilters();      
+    
+    // 3. Finally, run the filter to update the grid view based on the restored state.
+    filterGrid();          
+    
     updateLastUpdatedTime();
 
     if (sessionStorage.getItem('wasRefreshed')) {
@@ -22,11 +30,35 @@ function attachAllEventListeners() {
     document.getElementById('dueShipFilter').addEventListener('change', filterGrid);
     document.getElementById('exportBtn').addEventListener('click', exportVisibleDataToXlsx);
     document.getElementById('refreshBtn').addEventListener('click', () => {
+        // Save filters before reloading
+        saveFilters(); 
         sessionStorage.setItem('wasRefreshed', 'true');
         window.location.reload();
     });
     attachEditableListeners(document.getElementById('schedule-body'));
 }
+
+// --- FILTER PERSISTENCE ---
+function saveFilters() {
+    const filters = {
+        facility: document.getElementById('facilityFilter').value,
+        soType: document.getElementById('soTypeFilter').value,
+        customer: document.getElementById('customerFilter').value,
+        dueShip: document.getElementById('dueShipFilter').value,
+    };
+    sessionStorage.setItem('schedulingFilters', JSON.stringify(filters));
+}
+
+function restoreFilters() {
+    const savedFilters = JSON.parse(sessionStorage.getItem('schedulingFilters'));
+    if (savedFilters) {
+        document.getElementById('facilityFilter').value = savedFilters.facility || '';
+        document.getElementById('soTypeFilter').value = savedFilters.soType || '';
+        document.getElementById('customerFilter').value = savedFilters.customer || '';
+        document.getElementById('dueShipFilter').value = savedFilters.dueShip || '';
+    }
+}
+
 
 // --- UI, FILTERING & TOTALS ---
 function updateLastUpdatedTime() {
@@ -196,6 +228,7 @@ function filterGrid() {
     });
     
     // After filtering rows, update everything else.
+    saveFilters(); // Save the current filter state
     updateFilterOptions();
     updateRowCount();
     calculateTotals();

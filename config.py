@@ -1,5 +1,5 @@
 """
-Configuration settings for Downtime Tracker v1
+Configuration settings for Production Portal v1
 Reads sensitive information from environment variables
 """
 
@@ -93,4 +93,3 @@ class Config:
             return False
         
         return True
-

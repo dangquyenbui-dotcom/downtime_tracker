@@ -1,7 +1,7 @@
 # app.py - UPDATED with enhanced debugging
 
 """
-Downtime Tracker - Main Application
+Production Portal - Main Application
 Production-ready configuration with network access and i18n support
 """
 
@@ -102,7 +102,7 @@ def get_local_ip():
 def test_services():
     """Test all service connections on startup"""
     print("\n" + "="*60)
-    print("DOWNTIME TRACKER v1.8.0 - STARTUP DIAGNOSTICS")
+    print("PRODUCTION PORTAL v1.8.0 - STARTUP DIAGNOSTICS")
     print("="*60)
     
     from database.connection import DatabaseConnection
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     local_ip = get_local_ip()
     
     print("\n" + "="*50)
-    print("DOWNTIME TRACKER v1.8.0 - CONFIGURATION")
+    print("PRODUCTION PORTAL v1.8.0 - CONFIGURATION")
     print("="*50)
     print(f"Mode: {'TEST' if Config.TEST_MODE else 'PRODUCTION'}")
     print(f"Database: {Config.DB_SERVER}/{Config.DB_NAME}")
