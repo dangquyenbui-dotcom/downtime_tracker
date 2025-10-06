@@ -6,7 +6,7 @@ A robust, enterprise-ready web application designed for manufacturing environmen
 
 The application's hybrid data architecture connects to a **read-only ERP database** for live production data (like open sales orders) while storing all user-generated data—such as downtime events, scheduling projections, and audit logs—in a separate, fully-controlled local SQL Server database (`ProductionDB`).
 
-**Current Version:** 1.9.3 (Enhanced Scheduling & Security)
+**Current Version:** 1.9.4 (Granular Security Update)
 **Status:** Production Ready
 
 -----
@@ -24,12 +24,15 @@ The application's hybrid data architecture connects to a **read-only ERP databas
 ### ✅ Production Scheduling Module
 
   * **Live ERP Data Grid**: Displays open sales orders from the read-only ERP database in an Excel-like grid, optimized for wide-screen desktop use.
-  * **Role-Based Access**: Access to the scheduling module is strictly controlled by membership in a dedicated `Scheduling_Admin` Active Directory group.
+  * **Granular Role-Based Access**:
+      * **Scheduling Admins** (`Scheduling_Admin` group) have full access to view and edit scheduling projections.
+      * **Scheduling Users** (`Scheduling_User` group) have read-only access to the scheduling grid.
   * **Editable Projections**: Planners can directly input "No/Low Risk Qty" and "High Risk Qty" values into the grid, with changes saved instantly and automatically.
   * **Real-time Financial Calculations**: The grid dynamically updates dollar value columns as new quantities are entered.
   * **Advanced Financial Summaries**:
-      * **Multi-Period Inventory Valuation**: The total value of Finished Goods inventory is split into three dynamic, time-sensitive cards: inventory before the current production month, for the current month, and for the next month.
+      * **Multi-Period Inventory Valuation**: The total value of Finished Goods inventory is split into three dynamic, time-sensitive cards.
       * **Current Month Shipping Value**: A summary card displays the total dollar value of all products shipped in the current calendar month.
+      * **Shipment Forecasting**: Two dedicated cards provide dynamic forecasts for likely and potential shipment values based on current data.
   * **Persistent Data Storage**: All planner-entered projections are saved to a dedicated `ScheduleProjections` table in the local `ProductionDB`, ensuring data integrity and separation from the ERP.
   * **Customizable View**: Users can show or hide columns to customize their grid view, with preferences saved locally.
 
@@ -47,7 +50,11 @@ The application's hybrid data architecture connects to a **read-only ERP databas
 ### ✅ Security & Session Management
 
   * **Active Directory Authentication**: Secure user login using existing corporate credentials.
-  * **Granular Role-Based Access**: Differentiates between general Users (`DowntimeTracker_User`), Scheduling Admins (`Scheduling_Admin`), and full System Administrators (`DowntimeTracker_Admin`), restricting access to sensitive areas.
+  * **Granular Role-Based Access**: Differentiates between four distinct roles, restricting access to sensitive areas:
+      * `DowntimeTracker_Admin`: Full administrative access to all modules.
+      * `DowntimeTracker_User`: Can only access the "Report Downtime" page.
+      * `Scheduling_Admin`: Can view and edit the "Scheduling" page.
+      * `Scheduling_User`: Can only view the "Scheduling" page (read-only).
   * **Single-Session Enforcement**: Prevents a single user from being logged in at multiple locations simultaneously by invalidating old sessions upon a new login.
 
 ### ✅ Internationalization (i18n)

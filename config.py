@@ -29,6 +29,7 @@ class Config:
     AD_ADMIN_GROUP = os.getenv('AD_ADMIN_GROUP', 'DowntimeTracker_Admin')
     AD_USER_GROUP = os.getenv('AD_USER_GROUP', 'DowntimeTracker_User')
     AD_SCHEDULING_ADMIN_GROUP = os.getenv('AD_SCHEDULING_ADMIN_GROUP', 'Scheduling_Admin')
+    AD_SCHEDULING_USER_GROUP = os.getenv('AD_SCHEDULING_USER_GROUP', 'Scheduling_User')
     
     # Base DN for searches
     AD_BASE_DN = os.getenv('AD_BASE_DN')
