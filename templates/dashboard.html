@@ -269,6 +269,8 @@
             <div class="info-value">
                 {% if user.is_admin %}
                 Full Administrative Access
+                {% elif user.is_scheduling_admin %}
+                Scheduling Administrator
                 {% else %}
                 Downtime Entry Only
                 {% endif %}
@@ -280,6 +282,8 @@
                 {% for group in user.groups %}
                     {% if 'DowntimeTracker_Admin' in group %}
                     <span class="group-tag highlight">DowntimeTracker_Admin</span>
+                    {% elif 'Scheduling_Admin' in group %}
+                    <span class="group-tag highlight">Scheduling_Admin</span>
                     {% elif 'DowntimeTracker_User' in group %}
                     <span class="group-tag highlight">DowntimeTracker_User</span>
                     {% elif 'DowntimeTracker' in group %}
@@ -318,8 +322,11 @@
     <a href="/admin" class="action-card admin">
         <div class="action-icon">⚙️</div>
         <div class="action-title">Admin Panel</div>
-        <div class="action-desc">Manage facilities, lines, and settings</div>
+        <div class="admin-desc">Manage facilities, lines, and settings</div>
     </a>
+    {% endif %}
+    
+    {% if user.is_scheduling_admin %}
     <a href="{{ url_for('scheduling.index') }}" class="action-card admin">
         <div class="action-icon">🗓️</div>
         <div class="action-title">Scheduling</div>

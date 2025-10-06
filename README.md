@@ -1,5 +1,3 @@
-
-
 # Downtime Tracker & Production Scheduler
 
 ## Overview
@@ -8,7 +6,7 @@ A robust, enterprise-ready web application designed for manufacturing environmen
 
 The application's hybrid data architecture connects to a **read-only ERP database** for live production data (like open sales orders) while storing all user-generated data—such as downtime events, scheduling projections, and audit logs—in a separate, fully-controlled local SQL Server database (`ProductionDB`).
 
-**Current Version:** 1.9.2 (Scheduling Module Enhancement)
+**Current Version:** 1.9.3 (Enhanced Scheduling & Security)
 **Status:** Production Ready
 
 -----
@@ -26,12 +24,14 @@ The application's hybrid data architecture connects to a **read-only ERP databas
 ### ✅ Production Scheduling Module
 
   * **Live ERP Data Grid**: Displays open sales orders from the read-only ERP database in an Excel-like grid, optimized for wide-screen desktop use.
+  * **Role-Based Access**: Access to the scheduling module is strictly controlled by membership in a dedicated `Scheduling_Admin` Active Directory group.
   * **Editable Projections**: Planners can directly input "No/Low Risk Qty" and "High Risk Qty" values into the grid, with changes saved instantly and automatically.
   * **Real-time Financial Calculations**: The grid dynamically updates dollar value columns as new quantities are entered.
-  * **Advanced Inventory Valuation**:
-      * **FG On Hand Value Cards**: The total value of Finished Goods on-hand inventory is split into two dynamically dated cards based on a monthly 19th-day cutoff, providing a forward-looking financial overview.
-      * **Net Quantity Calculation**: The 'Net Qty' column is now calculated as `Ord Qty - Cur. Level` - `On hand Qty` to provide a clear view of immediate production requirements.
+  * **Advanced Financial Summaries**:
+      * **Multi-Period Inventory Valuation**: The total value of Finished Goods inventory is split into three dynamic, time-sensitive cards: inventory before the current production month, for the current month, and for the next month.
+      * **Current Month Shipping Value**: A summary card displays the total dollar value of all products shipped in the current calendar month.
   * **Persistent Data Storage**: All planner-entered projections are saved to a dedicated `ScheduleProjections` table in the local `ProductionDB`, ensuring data integrity and separation from the ERP.
+  * **Customizable View**: Users can show or hide columns to customize their grid view, with preferences saved locally.
 
 ### ✅ Reporting & Analytics
 
@@ -47,7 +47,7 @@ The application's hybrid data architecture connects to a **read-only ERP databas
 ### ✅ Security & Session Management
 
   * **Active Directory Authentication**: Secure user login using existing corporate credentials.
-  * **Role-Based Access Control**: Differentiates between regular Users and Administrators based on AD group membership, restricting access to sensitive areas.
+  * **Granular Role-Based Access**: Differentiates between general Users (`DowntimeTracker_User`), Scheduling Admins (`Scheduling_Admin`), and full System Administrators (`DowntimeTracker_Admin`), restricting access to sensitive areas.
   * **Single-Session Enforcement**: Prevents a single user from being logged in at multiple locations simultaneously by invalidating old sessions upon a new login.
 
 ### ✅ Internationalization (i18n)
@@ -71,81 +71,3 @@ The application's hybrid data architecture connects to a **read-only ERP databas
   * **Excel Export**: `openpyxl` for generating `.xlsx` reports.
 
 ### Project Structure
-
-```
-downtime_tracker/
-├── app.py                      # Main application factory
-├── config.py                   # Configuration loader from .env file
-├── i18n_config.py              # Internationalization setup
-├── requirements.txt            # Python dependencies
-├── .env                        # Local environment variables
-│
-├── auth/                       # Active Directory authentication
-│   └── ad_auth.py
-│
-├── database/                   # Database modules
-│   ├── connection.py           # Main application DB connection
-│   ├── erp_connection.py       # ERP DB connection (read-only, multi-driver support)
-│   ├── scheduling.py           # Combines ERP and local data for scheduling
-│   ├── reports.py              # Queries for analytical reports
-│   └── ...                     # (modules for each local table: audit, users, etc.)
-│
-├── routes/                     # Flask blueprints
-│   ├── main.py
-│   ├── downtime.py
-│   ├── scheduling.py
-│   ├── reports.py
-│   └── admin/                  # Admin panel blueprints
-│
-├── static/                     # CSS, JavaScript, and image files
-│
-├── templates/                  # Jinja2 HTML templates
-│   ├── admin/
-│   ├── components/
-│   ├── downtime/
-│   ├── reports/
-│   ├── scheduling/
-│   └── base.html
-│
-└── translations/               # Language files for i18n
-```
-
------
-
-## 🚀 Installation & Setup
-
-1.  **Install Dependencies**:
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-2.  **Install ODBC Driver**:
-
-      * Ensure a compatible Microsoft ODBC Driver for SQL Server is installed on the host machine. The application will automatically attempt to use a list of common drivers, including versions 17 and 18.
-
-3.  **Configure Environment**:
-
-      * Create a `.env` file in the project's root directory.
-      * Populate it with your specific database, ERP, and Active Directory credentials. A `.env.example` file should be created to guide this process.
-
-4.  **Database Setup**:
-
-      * Ensure the main application database (e.g., `ProductionDB`) exists on your SQL Server.
-      * The application will automatically create all necessary tables (like `AuditLog`, `ScheduleProjections`, `UserLogins`, etc.) on its first run.
-
-5.  **Run the Application**:
-
-    ```bash
-    python app.py
-    ```
-
-    The application will be accessible on your local network at `http://<your-ip-address>:5000`.
-
------
-
-## 🚧 Continuous Actions & Next Steps
-
-  * **Enhance Scheduling UI**: Add a grand total summary row at the bottom of the grid that updates dynamically with filters.
-  * **Build Out OEE Reports**: Develop a new report page to display Overall Equipment Effectiveness (OEE) scores with trend charts.
-  * **Downtime Analytics**: Create more in-depth reports, such as Pareto charts for downtime reasons and trend analysis over time.

@@ -30,6 +30,7 @@
         flex-wrap: wrap;
         gap: 20px;
         flex-grow: 1;
+        align-items: center; /* Align items vertically */
     }
     .filter-group {
         display: flex;
@@ -138,6 +139,8 @@
     .summary-card.green .summary-value { color: var(--accent-green); }
     .summary-card.red .summary-value { color: var(--accent-red); }
     .summary-card.blue .summary-value { color: var(--accent-blue); }
+    .summary-card.orange .summary-value { color: var(--accent-orange); }
+    .summary-card.purple .summary-value { color: var(--accent-purple); }
 
     /* --- EDITABLE CELL STYLES --- */
     .editable {
@@ -172,6 +175,46 @@
     .status-indicator.success { background-color: #4caf50; opacity: 1; }
     .status-indicator.error { background-color: #f44336; opacity: 1; }
     @keyframes pulse { 0% { background-color: #ffc107; } 50% { background-color: #ffecb3; } 100% { background-color: #ffc107; } }
+
+    /* --- NEW COLUMN TOGGLE STYLES --- */
+    .column-toggle-container {
+        position: relative;
+    }
+
+    .column-toggle-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: 8px;
+        box-shadow: var(--shadow-md);
+        z-index: 1001;
+        padding: 10px;
+        width: 220px;
+    }
+
+    .column-toggle-dropdown.show {
+        display: block;
+    }
+
+    .column-toggle-dropdown label {
+        display: block;
+        padding: 8px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 14px;
+        color: var(--text-primary);
+    }
+
+    .column-toggle-dropdown label:hover {
+        background-color: var(--bg-hover);
+    }
+
+    .column-toggle-dropdown input {
+        margin-right: 10px;
+    }
 </style>
 {% endblock %}
 
@@ -182,6 +225,10 @@
 </div>
 
 <div class="summary-grid">
+    <div class="summary-card orange">
+        <div class="summary-value" id="shipped-as-value">${{ "{:,.2f}".format(shipped_current_month or 0) }}</div>
+        <div class="summary-label">$ Shipped as {{ now.strftime('%m/%y') }}</div>
+    </div>
     <div class="summary-card green">
         <div class="summary-value" id="total-no-low-risk">$0.00</div>
         <div class="summary-label">$ No/Low Risk Qty</div>
@@ -191,12 +238,24 @@
         <div class="summary-label">$ High Risk</div>
     </div>
     <div class="summary-card blue">
-        <div class="summary-value">{{ "${:,.2f}".format(fg_on_hand_split.value1 or 0) }}</div>
+        <div class="summary-value" id="fg-on-hand-before">{{ "${:,.2f}".format(fg_on_hand_split.value1 or 0) }}</div>
         <div class="summary-label">{{ fg_on_hand_split.label1 }}</div>
     </div>
     <div class="summary-card blue">
-        <div class="summary-value">{{ "${:,.2f}".format(fg_on_hand_split.value2 or 0) }}</div>
+        <div class="summary-value" id="fg-on-hand-current">{{ "${:,.2f}".format(fg_on_hand_split.value2 or 0) }}</div>
         <div class="summary-label">{{ fg_on_hand_split.label2 }}</div>
+    </div>
+    <div class="summary-card blue">
+        <div class="summary-value" id="fg-on-hand-future">{{ "${:,.2f}".format(fg_on_hand_split.value3 or 0) }}</div>
+        <div class="summary-label">{{ fg_on_hand_split.label3 }}</div>
+    </div>
+    <div class="summary-card purple">
+        <div class="summary-value" id="forecast-likely-value">$0.00</div>
+        <div class="summary-label">Forecasting Shipment (Likely) for {{ now.strftime('%m/%y') }}</div>
+    </div>
+    <div class="summary-card purple">
+        <div class="summary-value" id="forecast-maybe-value">$0.00</div>
+        <div class="summary-label">Forecasting Shipment (May Be) for {{ now.strftime('%m/%y') }}</div>
     </div>
 </div>
 
@@ -220,6 +279,12 @@
             <label for="dueShipFilter">Due to Ship:</label>
             <select id="dueShipFilter" class="form-select filter-select"><option value="">All</option></select>
         </div>
+        <button class="btn btn-secondary" id="resetBtn">Reset</button>
+        <div class="column-toggle-container">
+            <button class="btn btn-secondary" id="columnsBtn">Columns</button>
+            <div id="column-dropdown" class="column-toggle-dropdown">
+                </div>
+        </div>
     </div>
     <div class="refresh-container">
         <span class="last-updated" id="lastUpdated"></span>
@@ -236,25 +301,25 @@
     <table class="grid-table">
         <thead>
             <tr>
-                <th>Facility</th>
-                <th>SO</th>
-                <th>Part</th>
-                <th>Customer Name</th>
-                <th class="numeric">Ord Qty - (00) Level</th>
-                <th class="numeric">Total Shipped Qty</th>
-                <th class="numeric">Ord Qty - Cur. Level</th>
-                <th class="numeric">Produced Qty</th>
-                <th class="numeric">On hand Qty</th>
-                <th class="numeric">Net Qty</th>
-                <th class="numeric">ERP Can Make</th>
-                <th class="numeric">ERP Low Risk</th>
-                <th class="numeric">ERP High Risk</th>
-                <th class="numeric editable-header">No/Low Risk Qty</th>
-                <th class="numeric editable-header">High Risk Qty</th>
-                <th class="numeric">Unit Price</th>
-                <th class="numeric highlight-green">$ No/Low Risk Qty</th>
-                <th class="numeric highlight-red">$ High Risk</th>
-                <th>Due to Ship</th>
+                <th data-column-id="Facility">Facility</th>
+                <th data-column-id="SO">SO</th>
+                <th data-column-id="Part">Part</th>
+                <th data-column-id="Customer Name">Customer Name</th>
+                <th class="numeric" data-column-id="Ord Qty - (00) Level">Ord Qty - (00) Level</th>
+                <th class="numeric" data-column-id="Total Shipped Qty">Total Shipped Qty</th>
+                <th class="numeric" data-column-id="Ord Qty - Cur. Level">Ord Qty - Cur. Level</th>
+                <th class="numeric" data-column-id="Produced Qty">Produced Qty</th>
+                <th class="numeric" data-column-id="On hand Qty">On hand Qty</th>
+                <th class="numeric" data-column-id="Net Qty">Net Qty</th>
+                <th class="numeric" data-column-id="ERP Can Make">ERP Can Make</th>
+                <th class="numeric" data-column-id="ERP Low Risk">ERP Low Risk</th>
+                <th class="numeric" data-column-id="ERP High Risk">ERP High Risk</th>
+                <th class="numeric editable-header" data-column-id="No/Low Risk Qty">No/Low Risk Qty</th>
+                <th class="numeric editable-header" data-column-id="High Risk Qty">High Risk Qty</th>
+                <th class="numeric" data-column-id="Unit Price">Unit Price</th>
+                <th class="numeric highlight-green" data-column-id="$ No/Low Risk Qty">$ No/Low Risk Qty</th>
+                <th class="numeric highlight-red" data-column-id="$ High Risk">$ High Risk</th>
+                <th data-column-id="Due to Ship">Due to Ship</th>
             </tr>
         </thead>
         <tbody id="schedule-body">
