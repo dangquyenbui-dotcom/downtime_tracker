@@ -1,5 +1,5 @@
 """
-Main routes for Downtime Tracker
+Main routes for Production Portal
 Complete with i18n translation support
 """
 
@@ -121,7 +121,7 @@ def login():
                 session['user'] = user_info
                 session['session_id'] = new_session_id
                 
-                print(f"✅ User {username} logged in successfully (session: {new_session_id[:8]}...)")
+                print(f"‚úÖ User {username} logged in successfully (session: {new_session_id[:8]}...)")
                 
                 # Log the login event
                 try:
@@ -149,7 +149,7 @@ def login():
                     return jsonify({'success': False, 'message': _('Invalid credentials or access denied')})
                 else:
                     flash(_('Invalid credentials or access denied'), 'error')
-                    print(f"❌ Login failed for user: {username}")
+                    print(f"‚ùå Login failed for user: {username}")
         else:
             if request.form.get('force_login'):
                 return jsonify({'success': False, 'message': _('Please enter both username and password')})
@@ -257,8 +257,8 @@ def status():
                              status=status_info, 
                              config=Config)
     else:
-        db_status = '✅ Connected' if status_info['db_connected'] else '❌ Disconnected'
-        ad_status = '✅ Connected' if status_info['ad_connected'] else '❌ Disconnected'
+        db_status = '‚úÖ Connected' if status_info['db_connected'] else '‚ùå Disconnected'
+        ad_status = '‚úÖ Connected' if status_info['ad_connected'] else '‚ùå Disconnected'
         test_mode = 'Yes' if status_info['test_mode'] else 'No'
         
         return f"""
@@ -273,7 +273,7 @@ def status():
                 <div>Facilities: {status_info['facilities_count']}</div>
                 <div>Production Lines: {status_info['lines_count']}</div>
                 <div>Active Sessions: {status_info['active_sessions']}</div>
-                <p><a href="/dashboard">← Back to Dashboard</a></p>
+                <p><a href="/dashboard">‚Üê Back to Dashboard</a></p>
             </div>
         </body>
         </html>

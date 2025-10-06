@@ -191,8 +191,12 @@
         <div class="summary-label">$ High Risk</div>
     </div>
     <div class="summary-card blue">
-        <div class="summary-value" id="total-fg-on-hand">{{ "${:,.2f}".format(total_fg_on_hand_value or 0) }}</div>
-        <div class="summary-label">FG On Hand Value</div>
+        <div class="summary-value">{{ "${:,.2f}".format(fg_on_hand_split.value1 or 0) }}</div>
+        <div class="summary-label">{{ fg_on_hand_split.label1 }}</div>
+    </div>
+    <div class="summary-card blue">
+        <div class="summary-value">{{ "${:,.2f}".format(fg_on_hand_split.value2 or 0) }}</div>
+        <div class="summary-label">{{ fg_on_hand_split.label2 }}</div>
     </div>
 </div>
 

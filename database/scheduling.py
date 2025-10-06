@@ -43,7 +43,7 @@ class SchedulingDB:
         # Step 1: Get the main sales order data from ERP
         erp_data = self.erp_service.get_open_order_schedule()
         
-        # Step 2: Get the on-hand inventory data from ERP
+        # Step 2: Get the on-hand inventory data from ERP for row-level display
         on_hand_data = self.erp_service.get_on_hand_inventory()
         # Create a simple lookup map: { 'PartNumber': TotalOnHand }
         on_hand_map = {item['PartNumber']: item['TotalOnHand'] for item in on_hand_data}
@@ -56,25 +56,22 @@ class SchedulingDB:
         # Create a lookup map for user projections
         projections_map = { f"{row['so_number']}-{row['part_number']}": row for row in local_data }
 
-        # --- NEW: Initialize variables for FG On Hand Value calculation ---
-        total_fg_on_hand_value = 0
-        processed_parts_for_fg_value = set()
+        # --- NEW: Get the split FG On Hand values and labels ---
+        fg_on_hand_split = self.erp_service.get_split_fg_on_hand_value()
 
-        # Step 4: Combine all data sources
+        # Step 4: Combine all data sources and perform final calculations
         for erp_row in erp_data:
             key = f"{erp_row['SO']}-{erp_row['Part']}"
             projection = projections_map.get(key)
             
-            # Add On-Hand Quantity from the map
-            on_hand_qty = on_hand_map.get(erp_row['Part'], 0)
+            # Add On-Hand Quantity from the map for display in the grid
+            on_hand_qty = on_hand_map.get(erp_row['Part'], 0) or 0
             erp_row['On hand Qty'] = on_hand_qty
 
-            # --- NEW: Calculate FG On Hand Value (once per part number to avoid duplication) ---
-            part_number = erp_row['Part']
-            if part_number not in processed_parts_for_fg_value:
-                price = erp_row.get('Unit Price', 0) or 0
-                total_fg_on_hand_value += on_hand_qty * price
-                processed_parts_for_fg_value.add(part_number)
+            # 'Net Qty' CALCULATION
+            ord_qty_curr_level = erp_row.get('Ord Qty - Cur. Level', 0) or 0
+            net_qty = ord_qty_curr_level - on_hand_qty
+            erp_row['Net Qty'] = net_qty if net_qty > 0 else 0 # Ensure Net Qty is not negative
 
             # Prioritize user-saved projections for editable fields
             if projection:
@@ -92,10 +89,10 @@ class SchedulingDB:
             erp_row['$ No/Low Risk Qty'] = (erp_row['No/Low Risk Qty'] or 0) * price
             erp_row['$ High Risk'] = (erp_row['High Risk Qty'] or 0) * price
         
-        # --- NEW: Return a dictionary with both grid data and the new total ---
+        # Combine grid data with the new split values
         return {
             "grid_data": erp_data,
-            "total_fg_on_hand_value": total_fg_on_hand_value
+            "fg_on_hand_split": fg_on_hand_split
         }
 
     def update_projection(self, so_number, part_number, risk_type, quantity, username):

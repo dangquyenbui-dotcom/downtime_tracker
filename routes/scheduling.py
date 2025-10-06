@@ -27,9 +27,14 @@ def index():
         return redirect(url_for('main.dashboard'))
 
     # Fetch data from ERP joined with local projections
-    schedule_data = scheduling_db.get_schedule_data()
+    data = scheduling_db.get_schedule_data()
     
-    return render_template('scheduling/index.html', schedule_data=schedule_data)
+    # Unpack the dictionary to pass its contents as separate variables to the template
+    return render_template(
+        'scheduling/index.html', 
+        schedule_data=data.get('grid_data', []),
+        fg_on_hand_split=data.get('fg_on_hand_split', {})
+    )
 
 @scheduling_bp.route('/api/update-projection', methods=['POST'])
 @validate_session

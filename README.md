@@ -1,6 +1,4 @@
-Of course. Here is a completely rewritten `README.md` file that reflects the current state and capabilities of your application, including the recent updates for database connectivity and expanded features.
 
------
 
 # Downtime Tracker & Production Scheduler
 
@@ -10,7 +8,7 @@ A robust, enterprise-ready web application designed for manufacturing environmen
 
 The application's hybrid data architecture connects to a **read-only ERP database** for live production data (like open sales orders) while storing all user-generated data—such as downtime events, scheduling projections, and audit logs—in a separate, fully-controlled local SQL Server database (`ProductionDB`).
 
-**Current Version:** 1.9.1 (ODBC Driver Resilience Update)
+**Current Version:** 1.9.2 (Scheduling Module Enhancement)
 **Status:** Production Ready
 
 -----
@@ -29,7 +27,10 @@ The application's hybrid data architecture connects to a **read-only ERP databas
 
   * **Live ERP Data Grid**: Displays open sales orders from the read-only ERP database in an Excel-like grid, optimized for wide-screen desktop use.
   * **Editable Projections**: Planners can directly input "No/Low Risk Qty" and "High Risk Qty" values into the grid, with changes saved instantly and automatically.
-  * **Real-time Financial Calculations**: Corresponding dollar value columns are updated on the front-end as new quantities are entered.
+  * **Real-time Financial Calculations**: The grid dynamically updates dollar value columns as new quantities are entered.
+  * **Advanced Inventory Valuation**:
+      * **FG On Hand Value Cards**: The total value of Finished Goods on-hand inventory is split into two dynamically dated cards based on a monthly 19th-day cutoff, providing a forward-looking financial overview.
+      * **Net Quantity Calculation**: The 'Net Qty' column is now calculated as `Ord Qty - Cur. Level` - `On hand Qty` to provide a clear view of immediate production requirements.
   * **Persistent Data Storage**: All planner-entered projections are saved to a dedicated `ScheduleProjections` table in the local `ProductionDB`, ensuring data integrity and separation from the ERP.
 
 ### ✅ Reporting & Analytics
@@ -63,10 +64,11 @@ The application's hybrid data architecture connects to a **read-only ERP databas
   * **Backend**: Python, Flask
   * **Database**:
       * **Application DB**: Microsoft SQL Server (via `pyodbc`) for all user-generated data.
-      * **ERP Connection**: Read-only connection to ERP database (via `pyodbc`).
+      * **ERP Connection**: Read-only connection to ERP database (via `pyodbc`) with resilient multi-driver support.
   * **Authentication**: Active Directory (via `ldap3`).
   * **Internationalization**: Flask-Babel.
   * **Frontend**: Jinja2, HTML, CSS, JavaScript (with Chart.js).
+  * **Excel Export**: `openpyxl` for generating `.xlsx` reports.
 
 ### Project Structure
 
@@ -120,13 +122,12 @@ downtime_tracker/
 
 2.  **Install ODBC Driver**:
 
-      * **For standard x64 Windows**: Download and install [Microsoft ODBC Driver 17 for SQL Server](https://www.google.com/search?q=https://www.microsoft.com/en-us/download/details.aspx%3Fid%3D56567).
-      * **For Windows on ARM64**: Download and install the **ARM64 version** of the [Microsoft ODBC Driver 18 for SQL Server](https://www.microsoft.com/en-us/download/details.aspx?id=104250).
+      * Ensure a compatible Microsoft ODBC Driver for SQL Server is installed on the host machine. The application will automatically attempt to use a list of common drivers, including versions 17 and 18.
 
 3.  **Configure Environment**:
 
       * Create a `.env` file in the project's root directory.
-      * Populate it with your specific database, ERP, and Active Directory credentials. A `  .env.example ` file should be created to guide this process.
+      * Populate it with your specific database, ERP, and Active Directory credentials. A `.env.example` file should be created to guide this process.
 
 4.  **Database Setup**:
 
