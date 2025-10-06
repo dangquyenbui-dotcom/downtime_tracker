@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ _('Sign In') }} - {{ _('Downtime Tracker') }}</title>
+    <title>{{ _('Sign In') }} - {{ _('Production Portal') }}</title>
     
-    <!-- CRITICAL: Apply theme BEFORE page renders to prevent flash -->
     <script>
         (function() {
             var theme = localStorage.getItem('theme') || 'light';
@@ -523,9 +522,7 @@
     </style>
 </head>
 <body>
-    <!-- Top Controls: Language Switcher + Theme Toggle -->
     <div class="top-controls">
-        <!-- Language Switcher -->
         <div class="language-switcher">
             {% for lang in get_languages() %}
                 <a href="{{ url_for('main.switch_language', language=lang.code) }}" 
@@ -536,7 +533,6 @@
             {% endfor %}
         </div>
         
-        <!-- Theme Toggle -->
         <div class="theme-toggle-float">
             <span class="theme-icon">☀️</span>
             <label class="theme-toggle">
@@ -551,7 +547,7 @@
         <div class="logo">
             <h1>
                 <span class="icon">🏭</span>
-                {{ _('Downtime Tracker') }}
+                {{ _('Production Portal') }}
             </h1>
             <p>{{ _('Active Directory Authentication') }}</p>
         </div>
@@ -610,7 +606,6 @@
         </div>
     </div>
     
-    <!-- Session Conflict Modal -->
     <div id="sessionModal" class="session-modal">
         <div class="session-modal-content">
             <h3>{{ _('Active Session Detected') }}</h3>

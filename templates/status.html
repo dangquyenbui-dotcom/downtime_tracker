@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}System Status - Downtime Tracker{% endblock %}
+{% block title %}System Status - Production Portal{% endblock %}
 
 {% block navbar_title %}📊 System Status{% endblock %}
 
@@ -285,7 +285,6 @@
     </div>
     
     <div class="connections-grid">
-        <!-- Database Connection -->
         <div class="connection-card {{ 'connected' if status.db_connected else 'disconnected' }}">
             <div class="connection-header">
                 <span class="connection-icon">🗄️</span>
@@ -314,7 +313,6 @@
             </div>
         </div>
         
-        <!-- Active Directory Connection -->
         <div class="connection-card {{ 'test-mode' if status.test_mode else ('connected' if status.ad_connected else 'disconnected') }}">
             <div class="connection-header">
                 <span class="connection-icon">🔐</span>
@@ -347,7 +345,6 @@
     </div>
 </div>
 
-<!-- Database Statistics -->
 <div class="statistics-section">
     <h3>Database Statistics</h3>
     <div class="stats-grid">
@@ -369,7 +366,6 @@
         </div>
     </div>
     
-    <!-- Configuration Info -->
     <div class="config-info">
         <h4>Security Groups Configuration</h4>
         <ul class="config-list">

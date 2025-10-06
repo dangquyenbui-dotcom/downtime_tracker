@@ -74,15 +74,13 @@ class ERPConnection:
             traceback.print_exc()
             return []
 
-# --- Singleton instance management ---
-_erp_db_instance = None
-
+# --- CORRECTED FUNCTION ---
 def get_erp_db():
-    """Gets the global singleton instance of the ERP connection."""
-    global _erp_db_instance
-    if _erp_db_instance is None:
-        _erp_db_instance = ERPConnection()
-    return _erp_db_instance
+    """
+    Gets a fresh instance of the ERP connection to ensure data is not stale.
+    This is intentionally NOT a singleton for data refresh purposes.
+    """
+    return ERPConnection()
 
 # --- ERP Service Layer ---
 class ErpService:

@@ -137,16 +137,28 @@
     }
     .summary-card.green .summary-value { color: var(--accent-green); }
     .summary-card.red .summary-value { color: var(--accent-red); }
+    .summary-card.blue .summary-value { color: var(--accent-blue); }
+
+    /* --- EDITABLE CELL STYLES --- */
     .editable {
         background-color: #fffde7;
         cursor: pointer;
         font-weight: bold;
     }
-    [data-theme="dark"] .editable { background-color: #42422a; }
+    [data-theme="dark"] .editable { 
+        background-color: #42422a; 
+    }
     .editable:focus {
         background-color: #ffffff;
+        color: #111111; /* Ensure dark text on focus for light mode */
         outline: 2px solid var(--accent-blue);
     }
+    [data-theme="dark"] .editable:focus {
+        background-color: #e0e0e0; /* Light grey background for dark mode focus */
+        color: #111111; /* Ensure dark text on focus for dark mode */
+        outline: 2px solid var(--accent-blue);
+    }
+
     .status-indicator {
         display: inline-block;
         width: 10px;
@@ -177,6 +189,10 @@
     <div class="summary-card red">
         <div class="summary-value" id="total-high-risk">$0.00</div>
         <div class="summary-label">$ High Risk</div>
+    </div>
+    <div class="summary-card blue">
+        <div class="summary-value" id="total-fg-on-hand">{{ "${:,.2f}".format(total_fg_on_hand_value or 0) }}</div>
+        <div class="summary-label">FG On Hand Value</div>
     </div>
 </div>
 
