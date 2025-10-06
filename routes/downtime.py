@@ -1,12 +1,10 @@
-# routes/downtime.py - Complete file with edit functionality
-
 """
 Downtime entry routes - COMPLETE WITH EDIT/DELETE
 iPad-optimized interface for production floor use
 """
 
 from flask import Blueprint, render_template, redirect, url_for, session, flash, jsonify, request
-from auth import require_login
+from auth import require_login, require_admin, require_user
 from routes.main import validate_session
 from database import facilities_db, lines_db, categories_db, downtimes_db, shifts_db, audit_db
 from utils import get_client_info
@@ -20,6 +18,10 @@ def entry_form():
     """Display the downtime entry form"""
     if not require_login(session):
         return redirect(url_for('main.login'))
+    
+    if not (require_admin(session) or require_user(session)):
+        flash('You do not have permission to report downtime.', 'error')
+        return redirect(url_for('main.dashboard'))
     
     # Get data for dropdowns
     facilities = facilities_db.get_all(active_only=True)
@@ -58,7 +60,7 @@ def entry_form():
 @validate_session
 def submit_downtime():
     """Submit a new downtime entry or update existing"""
-    if not require_login(session):
+    if not (require_admin(session) or require_user(session)):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     
     try:
@@ -147,7 +149,7 @@ def submit_downtime():
 @validate_session
 def get_downtime(downtime_id):
     """Get a specific downtime entry for editing"""
-    if not require_login(session):
+    if not (require_admin(session) or require_user(session)):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     
     entry = downtimes_db.get_by_id(downtime_id)
@@ -173,7 +175,7 @@ def get_downtime(downtime_id):
 @validate_session
 def delete_downtime(downtime_id):
     """Delete a downtime entry"""
-    if not require_login(session):
+    if not (require_admin(session) or require_user(session)):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     
     success, message = downtimes_db.delete(

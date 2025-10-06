@@ -117,23 +117,23 @@
     .summary-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
+        gap: 15px;
         margin-bottom: 20px;
     }
     .summary-card {
         background: var(--bg-secondary);
         border-radius: 10px;
-        padding: 20px;
+        padding: 15px;
         box-shadow: var(--shadow-sm);
         border: 1px solid var(--border-primary);
     }
     .summary-value {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 700;
         margin-bottom: 5px;
     }
     .summary-label {
-        font-size: 14px;
+        font-size: 13px;
         color: var(--text-secondary);
     }
     .summary-card.green .summary-value { color: var(--accent-green); }
@@ -160,6 +160,14 @@
         background-color: #e0e0e0; /* Light grey background for dark mode focus */
         color: #111111; /* Ensure dark text on focus for dark mode */
         outline: 2px solid var(--accent-blue);
+    }
+    .editable.view-only {
+        background-color: transparent;
+        cursor: not-allowed;
+        font-weight: normal;
+    }
+    [data-theme="dark"] .editable.view-only { 
+        background-color: transparent; 
     }
 
     .status-indicator {
@@ -227,7 +235,7 @@
 <div class="summary-grid">
     <div class="summary-card orange">
         <div class="summary-value" id="shipped-as-value">${{ "{:,.2f}".format(shipped_current_month or 0) }}</div>
-        <div class="summary-label">$ Shipped as {{ now.strftime('%m/%y') }}</div>
+        <div class="summary-label">Shipped as {{ now.strftime('%m/%y') }}</div>
     </div>
     <div class="summary-card green">
         <div class="summary-value" id="total-no-low-risk">$0.00</div>
@@ -338,8 +346,14 @@
                 <td class="numeric">{{ "{:,.2f}".format((row['Can Make - No Risk'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Low Risk'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['High Risk'] | float) or 0) }}</td>
-                <td class="editable numeric" contenteditable="true" data-risk-type="No/Low Risk Qty" data-price="{{ row['Unit Price'] }}">{{ "{:,.2f}".format((row['No/Low Risk Qty'] | float) or 0) }}</td>
-                <td class="editable numeric" contenteditable="true" data-risk-type="High Risk Qty" data-price="{{ row['Unit Price'] }}">{{ "{:,.2f}".format((row['High Risk Qty'] | float) or 0) }}</td>
+                <td class="editable numeric {% if not user.is_scheduling_admin %}view-only{% endif %}"
+                    {% if user.is_scheduling_admin %}contenteditable="true"{% endif %}
+                    data-risk-type="No/Low Risk Qty" 
+                    data-price="{{ row['Unit Price'] }}">{{ "{:,.2f}".format((row['No/Low Risk Qty'] | float) or 0) }}</td>
+                <td class="editable numeric {% if not user.is_scheduling_admin %}view-only{% endif %}"
+                    {% if user.is_scheduling_admin %}contenteditable="true"{% endif %}
+                    data-risk-type="High Risk Qty" 
+                    data-price="{{ row['Unit Price'] }}">{{ "{:,.2f}".format((row['High Risk Qty'] | float) or 0) }}</td>
                 <td class="numeric">${{ "%.4f" | format((row['Unit Price'] | float) or 0) }}</td>
                 <td class="numeric highlight-green" data-calculated-for="No/Low Risk Qty">${{ "{:,.2f}".format((row['$ No/Low Risk Qty'] | float) or 0) }}</td>
                 <td class="numeric highlight-red" data-calculated-for="High Risk Qty">${{ "{:,.2f}".format((row['$ High Risk'] | float) or 0) }}</td>

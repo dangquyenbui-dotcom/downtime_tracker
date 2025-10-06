@@ -62,32 +62,48 @@ def authenticate_user(username, password):
     # Test mode for development
     if Config.TEST_MODE:
         test_users = {
-            'test': {
-                'password': 'test',
-                'display_name': 'Test User',
-                'email': f'test@{Config.AD_DOMAIN}',
-                'groups': ['DowntimeTracker_User']
+            'dt_admin': {
+                'password': 'password', 'display_name': 'Downtime Admin',
+                'groups': [Config.AD_ADMIN_GROUP]
             },
-            'test1': {
-                'password': 'test1',
-                'display_name': 'Test Admin',
-                'email': f'test1@{Config.AD_DOMAIN}',
-                'groups': ['DowntimeTracker_Admin', 'Scheduling_Admin']
+            'dt_user': {
+                'password': 'password', 'display_name': 'Downtime User',
+                'groups': [Config.AD_USER_GROUP]
+            },
+            'sched_admin': {
+                'password': 'password', 'display_name': 'Scheduling Admin',
+                'groups': [Config.AD_SCHEDULING_ADMIN_GROUP]
+            },
+            'sched_user': {
+                'password': 'password', 'display_name': 'Scheduling User',
+                'groups': [Config.AD_SCHEDULING_USER_GROUP]
+            },
+            'super_admin': {
+                'password': 'password', 'display_name': 'Super Admin',
+                'groups': [Config.AD_ADMIN_GROUP, Config.AD_SCHEDULING_ADMIN_GROUP]
             }
         }
         
         if username in test_users and test_users[username]['password'] == password:
             user = test_users[username]
             is_admin = Config.AD_ADMIN_GROUP in user['groups']
+            is_user = Config.AD_USER_GROUP in user['groups']
             is_scheduling_admin = Config.AD_SCHEDULING_ADMIN_GROUP in user['groups']
+            is_scheduling_user = Config.AD_SCHEDULING_USER_GROUP in user['groups']
+
+            # User must be in at least one group to be valid
+            if not any([is_admin, is_user, is_scheduling_admin, is_scheduling_user]):
+                return None
+                
             return {
                 'username': username,
                 'display_name': user['display_name'],
-                'email': user['email'],
+                'email': f'{username}@{Config.AD_DOMAIN}',
                 'groups': user['groups'],
                 'is_admin': is_admin,
+                'is_user': is_user,
                 'is_scheduling_admin': is_scheduling_admin,
-                'is_user': Config.AD_USER_GROUP in user['groups']
+                'is_scheduling_user': is_scheduling_user,
             }
         return None
     
@@ -114,9 +130,10 @@ def authenticate_user(username, password):
                 is_in_admin = Config.AD_ADMIN_GROUP in user_info['groups']
                 is_in_user = Config.AD_USER_GROUP in user_info['groups']
                 is_in_scheduling_admin = Config.AD_SCHEDULING_ADMIN_GROUP in user_info['groups']
+                is_in_scheduling_user = Config.AD_SCHEDULING_USER_GROUP in user_info['groups']
                 
                 # User must be in at least one of the groups
-                if not (is_in_admin or is_in_user or is_in_scheduling_admin):
+                if not any([is_in_admin, is_in_user, is_in_scheduling_admin, is_in_scheduling_user]):
                     print(f"User {username} not in required groups")
                     return None
                 
@@ -126,8 +143,9 @@ def authenticate_user(username, password):
                     'email': user_info['email'],
                     'groups': user_info['groups'],
                     'is_admin': is_in_admin,
+                    'is_user': is_in_user,
                     'is_scheduling_admin': is_in_scheduling_admin,
-                    'is_user': is_in_user
+                    'is_scheduling_user': is_in_scheduling_user
                 }
                 
         except ldap3.core.exceptions.LDAPBindError:
@@ -145,15 +163,27 @@ def require_login(session):
     return 'user' in session
 
 def require_admin(session):
-    """Check if user is admin"""
+    """Check if user is a DowntimeTracker_Admin"""
     if 'user' in session:
         return session['user'].get('is_admin', False)
     return False
 
+def require_user(session):
+    """Check if user is a DowntimeTracker_User"""
+    if 'user' in session:
+        return session['user'].get('is_user', False)
+    return False
+
 def require_scheduling_admin(session):
-    """Check if user is a scheduling admin"""
+    """Check if user is a Scheduling_Admin"""
     if 'user' in session:
         return session['user'].get('is_scheduling_admin', False)
+    return False
+
+def require_scheduling_user(session):
+    """Check if user is a Scheduling_User"""
+    if 'user' in session:
+        return session['user'].get('is_scheduling_user', False)
     return False
 
 def test_ad_connection():

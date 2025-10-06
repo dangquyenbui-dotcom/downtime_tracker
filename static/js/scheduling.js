@@ -418,7 +418,7 @@ function applySuggestion(buttonElement) {
 
 // --- EDITABLE CELL LOGIC ---
 function attachEditableListeners(scope) {
-    scope.querySelectorAll('.editable').forEach(cell => {
+    scope.querySelectorAll('.editable:not(.view-only)').forEach(cell => {
         cell.addEventListener('blur', handleCellBlur);
         cell.addEventListener('focus', handleCellFocus);
         cell.addEventListener('keydown', handleCellKeyDown);

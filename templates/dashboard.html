@@ -268,31 +268,32 @@
             <div class="info-label">Access Level:</div>
             <div class="info-value">
                 {% if user.is_admin %}
-                Full Administrative Access
+                    Full Administrative Access
                 {% elif user.is_scheduling_admin %}
-                Scheduling Administrator
+                    Scheduling Administrator
+                {% elif user.is_scheduling_user %}
+                    Scheduling Read-Only
+                {% elif user.is_user %}
+                    Downtime Entry Only
                 {% else %}
-                Downtime Entry Only
+                    Limited Access
                 {% endif %}
             </div>
         </div>
         <div class="info-row">
             <div class="info-label">AD Groups:</div>
             <div class="info-value">
+                {% set relevant_groups = [
+                    config.AD_ADMIN_GROUP, 
+                    config.AD_USER_GROUP, 
+                    config.AD_SCHEDULING_ADMIN_GROUP, 
+                    config.AD_SCHEDULING_USER_GROUP
+                ] %}
                 {% for group in user.groups %}
-                    {% if 'DowntimeTracker_Admin' in group %}
-                    <span class="group-tag highlight">DowntimeTracker_Admin</span>
-                    {% elif 'Scheduling_Admin' in group %}
-                    <span class="group-tag highlight">Scheduling_Admin</span>
-                    {% elif 'DowntimeTracker_User' in group %}
-                    <span class="group-tag highlight">DowntimeTracker_User</span>
-                    {% elif 'DowntimeTracker' in group %}
-                    <span class="group-tag highlight">{{ group }}</span>
+                    {% if group in relevant_groups %}
+                        <span class="group-tag highlight">{{ group }}</span>
                     {% endif %}
                 {% endfor %}
-                {% if not user.groups or (user.groups|selectattr('0', 'in', 'DowntimeTracker')|list|length == 0) %}
-                <span class="group-tag">None</span>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -318,15 +319,17 @@
 </div>
 
 <div class="actions-grid">
+    {# Admin Panel: Only for DowntimeTracker_Admin #}
     {% if user.is_admin %}
     <a href="/admin" class="action-card admin">
         <div class="action-icon">⚙️</div>
         <div class="action-title">Admin Panel</div>
-        <div class="admin-desc">Manage facilities, lines, and settings</div>
+        <div class="action-desc">Manage facilities, lines, and settings</div>
     </a>
     {% endif %}
     
-    {% if user.is_scheduling_admin %}
+    {# Scheduling: For Scheduling_Admin and Scheduling_User #}
+    {% if user.is_scheduling_admin or user.is_scheduling_user %}
     <a href="{{ url_for('scheduling.index') }}" class="action-card admin">
         <div class="action-icon">🗓️</div>
         <div class="action-title">Scheduling</div>
@@ -334,17 +337,23 @@
     </a>
     {% endif %}
     
+    {# Report Downtime: For DowntimeTracker_Admin and DowntimeTracker_User #}
+    {% if user.is_admin or user.is_user %}
     <a href="/downtime" class="action-card">
         <div class="action-icon">📝</div>
         <div class="action-title">Report Downtime</div>
         <div class="action-desc">Record production downtime events</div>
     </a>
+    {% endif %}
     
+    {# View Reports: Only for DowntimeTracker_Admin #}
+    {% if user.is_admin %}
     <a href="{{ url_for('reports.hub') }}" class="action-card">
         <div class="action-icon">📊</div>
         <div class="action-title">View Reports</div>
         <div class="action-desc">View downtime reports and analytics</div>
     </a>
+    {% endif %}
     
     <a href="/logout" class="action-card logout">
         <div class="action-icon">🚪</div>

@@ -2,8 +2,8 @@
 Reporting routes for generating and viewing system reports.
 """
 
-from flask import Blueprint, render_template, redirect, url_for, session, request
-from auth import require_login
+from flask import Blueprint, render_template, redirect, url_for, session, request, flash
+from auth import require_login, require_admin
 from routes.main import validate_session
 from database import facilities_db, lines_db
 from database.reports import reports_db # New reports database module
@@ -18,6 +18,10 @@ def hub():
     if not require_login(session):
         return redirect(url_for('main.login'))
     
+    if not require_admin(session):
+        flash('Admin privileges are required to view reports.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
     return render_template('reports/hub.html', user=session['user'])
 
 @reports_bp.route('/reports/downtime-summary')
@@ -26,6 +30,10 @@ def downtime_summary():
     """Display the Downtime Summary report."""
     if not require_login(session):
         return redirect(url_for('main.login'))
+
+    if not require_admin(session):
+        flash('Admin privileges are required to view reports.', 'error')
+        return redirect(url_for('main.dashboard'))
 
     # Get filter values from URL query parameters
     today = datetime.now()
