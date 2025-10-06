@@ -3,6 +3,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     
     // --- INITIALIZATION ---
+    initializeColumnToggle(); // Set up column toggling first
     attachAllEventListeners();
     
     // 1. Populate filters with all possible options from the full dataset first.
@@ -29,6 +30,7 @@ function attachAllEventListeners() {
     document.getElementById('customerFilter').addEventListener('change', filterGrid);
     document.getElementById('dueShipFilter').addEventListener('change', filterGrid);
     document.getElementById('exportBtn').addEventListener('click', exportVisibleDataToXlsx);
+    document.getElementById('resetBtn').addEventListener('click', resetFilters);
     document.getElementById('refreshBtn').addEventListener('click', () => {
         // Save filters before reloading
         saveFilters(); 
@@ -59,6 +61,16 @@ function restoreFilters() {
     }
 }
 
+// --- NEW: RESET FILTERS ---
+function resetFilters() {
+    document.getElementById('facilityFilter').value = '';
+    document.getElementById('soTypeFilter').value = '';
+    document.getElementById('customerFilter').value = '';
+    document.getElementById('dueShipFilter').value = '';
+    sessionStorage.removeItem('schedulingFilters');
+    filterGrid(); // Re-apply the blank filters
+}
+
 
 // --- UI, FILTERING & TOTALS ---
 function updateLastUpdatedTime() {
@@ -84,6 +96,33 @@ function calculateTotals() {
 
     document.getElementById('total-no-low-risk').textContent = totalNoLowRisk.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     document.getElementById('total-high-risk').textContent = totalHighRisk.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    
+    updateForecastCards(totalNoLowRisk, totalHighRisk);
+}
+
+function updateForecastCards(totalNoLowRisk, totalHighRisk) {
+    // Helper to parse currency string to float from an element by ID
+    const getValueFromCardById = (elementId) => {
+        const cardElement = document.getElementById(elementId);
+        if (!cardElement) return 0;
+        return parseFloat(cardElement.textContent.replace(/[$,]/g, '')) || 0;
+    };
+
+    // Get values from the existing 6 cards
+    const shippedCurrentMonth = getValueFromCardById('shipped-as-value');
+    const fgBefore = getValueFromCardById('fg-on-hand-before');
+    const fgCurrent = getValueFromCardById('fg-on-hand-current');
+    const fgFuture = getValueFromCardById('fg-on-hand-future');
+
+    // Calculate "Likely" forecast
+    const forecastLikelyValue = shippedCurrentMonth + totalNoLowRisk + fgCurrent;
+
+    // Calculate "May Be" forecast
+    const forecastMaybeValue = shippedCurrentMonth + totalNoLowRisk + totalHighRisk + fgBefore + fgCurrent + fgFuture;
+
+    // Update the new cards
+    document.getElementById('forecast-likely-value').textContent = forecastLikelyValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    document.getElementById('forecast-maybe-value').textContent = forecastMaybeValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
 function updateRowCount() {
@@ -233,6 +272,88 @@ function filterGrid() {
     updateRowCount();
     calculateTotals();
     validateAllRows();
+}
+
+// --- NEW: COLUMN TOGGLE LOGIC ---
+const COLUMNS_CONFIG_KEY = 'schedulingColumnConfig';
+
+function initializeColumnToggle() {
+    const dropdown = document.getElementById('column-dropdown');
+    const headers = document.querySelectorAll('.grid-table thead th');
+    let savedConfig = JSON.parse(localStorage.getItem(COLUMNS_CONFIG_KEY));
+
+    // Default configuration if nothing is saved
+    if (!savedConfig) {
+        savedConfig = {};
+        headers.forEach(th => {
+            const id = th.dataset.columnId;
+            if (id) {
+                // By default hide these columns
+                const defaultHidden = ['Ord Qty - (00) Level', 'Total Shipped Qty', 'Produced Qty', 'ERP Can Make', 'ERP Low Risk', 'ERP High Risk', 'Unit Price'];
+                savedConfig[id] = !defaultHidden.includes(id);
+            }
+        });
+    }
+    
+    // Populate dropdown and set listeners
+    headers.forEach(th => {
+        const id = th.dataset.columnId;
+        if (id) {
+            const isVisible = savedConfig[id] !== false; // Default to visible if not specified
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" data-column-id="${id}" ${isVisible ? 'checked' : ''}> ${id}`;
+            dropdown.appendChild(label);
+
+            label.querySelector('input').addEventListener('change', handleColumnToggle);
+        }
+    });
+
+    applyColumnVisibility(savedConfig);
+
+    const columnsBtn = document.getElementById('columnsBtn');
+    columnsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('show');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target) && !columnsBtn.contains(e.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+}
+
+function handleColumnToggle(e) {
+    const columnId = e.target.dataset.columnId;
+    const isVisible = e.target.checked;
+    
+    let savedConfig = JSON.parse(localStorage.getItem(COLUMNS_CONFIG_KEY)) || {};
+    savedConfig[columnId] = isVisible;
+    localStorage.setItem(COLUMNS_CONFIG_KEY, JSON.stringify(savedConfig));
+    
+    applyColumnVisibility(savedConfig);
+}
+
+function applyColumnVisibility(config) {
+    const table = document.querySelector('.grid-table');
+    const headers = Array.from(table.querySelectorAll('thead th'));
+
+    for (const columnId in config) {
+        const isVisible = config[columnId];
+        const headerIndex = headers.findIndex(th => th.dataset.columnId === columnId);
+
+        if (headerIndex > -1) {
+            const displayStyle = isVisible ? '' : 'none';
+            // Toggle header
+            table.querySelector(`th[data-column-id="${columnId}"]`).style.display = displayStyle;
+            // Toggle all cells in that column
+            table.querySelectorAll(`tbody tr`).forEach(row => {
+                if (row.cells[headerIndex]) {
+                    row.cells[headerIndex].style.display = displayStyle;
+                }
+            });
+        }
+    }
 }
 
 
@@ -390,14 +511,16 @@ function exportVisibleDataToXlsx() {
     exportBtn.disabled = true;
     exportBtn.textContent = '📥 Generating...';
 
-    const headers = Array.from(document.querySelectorAll('.grid-table thead th')).map(th => th.textContent.trim());
+    const headers = Array.from(document.querySelectorAll('.grid-table thead th'))
+        .filter(th => th.style.display !== 'none') // Only include visible headers
+        .map(th => th.textContent.trim());
 
     const rows = [];
     document.querySelectorAll('#schedule-body tr:not(.hidden-row)').forEach(row => {
         const rowData = [];
         row.querySelectorAll('td').forEach(cell => {
-            // Exclude the hidden "SO Type" column from the export
-            if (cell.getAttribute('data-field') !== 'SO Type') {
+            // Exclude hidden columns and the hidden "SO Type" column from the export
+            if (cell.style.display !== 'none' && cell.getAttribute('data-field') !== 'SO Type') {
                 rowData.push(cell.textContent.trim());
             }
         });

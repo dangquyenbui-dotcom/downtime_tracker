@@ -7,6 +7,7 @@ from .ad_auth import (
     get_user_groups,
     require_login,
     require_admin,
+    require_scheduling_admin,
     test_ad_connection
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     'get_user_groups', 
     'require_login',
     'require_admin',
+    'require_scheduling_admin',
     'test_ad_connection'
 ]

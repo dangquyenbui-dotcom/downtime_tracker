@@ -154,31 +154,37 @@ class ErpService:
 
     def get_split_fg_on_hand_value(self):
         """
-        Calculates FG On Hand value, split into two periods based on the 19th of the month.
+        Calculates FG On Hand value, split into three periods based on the 19th of each month.
         """
         today = datetime.now()
-        
-        # Determine the cutoff date based on the 19th of the month
-        if today.day < 19:
-            cutoff_date = today.replace(day=18)
-            label1_month = today
-            label2_month = today + timedelta(days=32)
-        else:
-            # Move to the next month to set the cutoff
-            next_month = today.replace(day=28) + timedelta(days=4) # Go to next month safely
-            cutoff_date = next_month.replace(day=18)
-            label1_month = next_month
-            label2_month = next_month + timedelta(days=32)
 
-        # Format labels as "MM/YY"
-        label1 = f"FG On Hand - For {label1_month.strftime('%m/%y')}"
-        label2 = f"FG On Hand - For {label2_month.strftime('%m/%y')}"
+        # Calculate cutoff dates
+        # cutoff_current_start: The 19th of the previous month. This is the start of the "current" period.
+        first_day_of_current_month = today.replace(day=1)
+        last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
+        cutoff_current_start = last_day_of_previous_month.replace(day=19)
+
+        # cutoff_future_start: The 19th of the current month. This is the start of the "future" period.
+        cutoff_future_start = today.replace(day=19)
         
+        # Determine label dates
+        current_month_label_date = today
+        next_month_label_date = (today.replace(day=28) + timedelta(days=4))
+
+        # Format labels
+        current_month_label = current_month_label_date.strftime('%m/%y')
+        next_month_label = next_month_label_date.strftime('%m/%y')
+
+        label1 = f"FG On Hand - Before {current_month_label}"
+        label2 = f"FG On Hand - For {current_month_label}"
+        label3 = f"FG On Hand - For {next_month_label}"
+
         db = get_erp_db()
         sql = """
             SELECT
-                SUM(CASE WHEN f.fi_lotdate <= ? THEN f.fi_balance * p.pr_lispric ELSE 0 END) AS value1,
-                SUM(CASE WHEN f.fi_lotdate > ? THEN f.fi_balance * p.pr_lispric ELSE 0 END) AS value2
+                SUM(CASE WHEN f.fi_lotdate < ? THEN f.fi_balance * p.pr_lispric ELSE 0 END) AS value1,
+                SUM(CASE WHEN f.fi_lotdate >= ? AND f.fi_lotdate < ? THEN f.fi_balance * p.pr_lispric ELSE 0 END) AS value2,
+                SUM(CASE WHEN f.fi_lotdate >= ? THEN f.fi_balance * p.pr_lispric ELSE 0 END) AS value3
             FROM dtfifo f
             JOIN dmprod p ON f.fi_prid = p.pr_id
             JOIN dmware w ON f.fi_waid = w.wa_id
@@ -188,16 +194,41 @@ class ErpService:
                 AND w.wa_name IN ('DUARTE', 'IRWINDALE');
         """
         
-        result = db.execute_query(sql, (cutoff_date, cutoff_date))
+        params = (cutoff_current_start, cutoff_current_start, cutoff_future_start, cutoff_future_start)
+        result = db.execute_query(sql, params)
         
         if result:
             return {
                 'label1': label1,
                 'value1': result[0]['value1'] or 0,
                 'label2': label2,
-                'value2': result[0]['value2'] or 0
+                'value2': result[0]['value2'] or 0,
+                'label3': label3,
+                'value3': result[0]['value3'] or 0
             }
-        return {'label1': label1, 'value1': 0, 'label2': label2, 'value2': 0}
+        return {'label1': label1, 'value1': 0, 'label2': label2, 'value2': 0, 'label3': label3, 'value3': 0}
+
+    def get_shipped_for_current_month(self):
+        """
+        Calculates the total value of all orders shipped in the current calendar month.
+        """
+        db = get_erp_db()
+        sql = """
+            SELECT
+                SUM(det.or_shipquant * det.or_price) AS total_shipped_value
+            FROM dttord ord
+            INNER JOIN dtord det ON ord.to_id = det.or_toid
+            WHERE
+                ord.to_shipped IS NOT NULL
+                AND ord.to_status = 'c'
+                AND ord.to_ordtype IN ('s', 'm')
+                AND MONTH(ord.to_shipped) = MONTH(GETDATE())
+                AND YEAR(ord.to_shipped) = YEAR(GETDATE());
+        """
+        result = db.execute_query(sql)
+        if result and result[0]['total_shipped_value'] is not None:
+            return result[0]['total_shipped_value']
+        return 0
 
     def get_open_order_schedule(self):
         # ... (this long SQL query remains unchanged, with 'Net Qty' as a placeholder)

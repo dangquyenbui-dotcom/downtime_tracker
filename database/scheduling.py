@@ -56,8 +56,11 @@ class SchedulingDB:
         # Create a lookup map for user projections
         projections_map = { f"{row['so_number']}-{row['part_number']}": row for row in local_data }
 
-        # --- NEW: Get the split FG On Hand values and labels ---
+        # --- Get the split FG On Hand values and labels ---
         fg_on_hand_split = self.erp_service.get_split_fg_on_hand_value()
+        
+        # --- Get the total shipped value for the current month ---
+        shipped_current_month = self.erp_service.get_shipped_for_current_month()
 
         # Step 4: Combine all data sources and perform final calculations
         for erp_row in erp_data:
@@ -89,10 +92,11 @@ class SchedulingDB:
             erp_row['$ No/Low Risk Qty'] = (erp_row['No/Low Risk Qty'] or 0) * price
             erp_row['$ High Risk'] = (erp_row['High Risk Qty'] or 0) * price
         
-        # Combine grid data with the new split values
+        # Combine grid data with all summary card values
         return {
             "grid_data": erp_data,
-            "fg_on_hand_split": fg_on_hand_split
+            "fg_on_hand_split": fg_on_hand_split,
+            "shipped_current_month": shipped_current_month
         }
 
     def update_projection(self, so_number, part_number, risk_type, quantity, username):

@@ -4,7 +4,7 @@ Handles display and updates for the production scheduling grid.
 """
 
 from flask import Blueprint, render_template, jsonify, request, session, redirect, url_for, flash, send_file
-from auth import require_login, require_admin
+from auth import require_login, require_scheduling_admin
 from routes.main import validate_session
 from database import scheduling_db
 import traceback
@@ -22,8 +22,8 @@ def index():
     if not require_login(session):
         return redirect(url_for('main.login'))
     
-    if not require_admin(session):
-        flash('Admin privileges are required to access the scheduling module.', 'error')
+    if not require_scheduling_admin(session):
+        flash('Scheduling Admin privileges are required to access this module.', 'error')
         return redirect(url_for('main.dashboard'))
 
     # Fetch data from ERP joined with local projections
@@ -33,14 +33,16 @@ def index():
     return render_template(
         'scheduling/index.html', 
         schedule_data=data.get('grid_data', []),
-        fg_on_hand_split=data.get('fg_on_hand_split', {})
+        fg_on_hand_split=data.get('fg_on_hand_split', {}),
+        shipped_current_month=data.get('shipped_current_month', 0),
+        now=datetime.now()
     )
 
 @scheduling_bp.route('/api/update-projection', methods=['POST'])
 @validate_session
 def update_projection():
     """API endpoint to save projection data from the grid."""
-    if not require_login(session) or not require_admin(session):
+    if not require_login(session) or not require_scheduling_admin(session):
         return jsonify({'success': False, 'message': 'Authentication required'}), 401
 
     try:
@@ -85,7 +87,7 @@ def update_projection():
 @validate_session
 def export_xlsx():
     """API endpoint to export the visible grid data to an XLSX file."""
-    if not require_login(session) or not require_admin(session):
+    if not require_login(session) or not require_scheduling_admin(session):
         return jsonify({'success': False, 'message': 'Authentication required'}), 401
 
     try:
