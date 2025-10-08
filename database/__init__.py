@@ -1,4 +1,4 @@
-# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-953d9e6915ad7fa465db9a8f87b8a56d713b0537/database/__init__.py
+# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-5bb4163f1c166071f5c302dee6ed03e0344576eb/database/__init__.py
 """
 Database package initialization
 Provides centralized access to all database modules
@@ -16,6 +16,7 @@ from .sessions import SessionsDB
 from .reports import reports_db
 from .scheduling import scheduling_db
 from .capacity import ProductionCapacityDB # Add this import
+from .mrp_service import mrp_service
 
 # Create singleton instances
 facilities_db = FacilitiesDB()
@@ -42,5 +43,6 @@ __all__ = [
     'sessions_db',
     'reports_db',
     'scheduling_db',
-    'capacity_db' # Add this export
+    'capacity_db', # Add this export
+    'mrp_service'
 ]

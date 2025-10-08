@@ -1,4 +1,4 @@
-# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-953d9e6915ad7fa465db9a8f87b8a56d713b0537/database/erp_connection.py
+# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-5bb4163f1c166071f5c302dee6ed03e0344576eb/database/erp_connection.py
 """
 Dedicated ERP Database Connection Service.
 This is separate from the main application's database connection.
@@ -9,7 +9,6 @@ from config import Config
 from datetime import datetime, timedelta
 
 class ERPConnection:
-    # ... (rest of the class remains unchanged) ...
     def __init__(self):
         self.connection = None
         self._connection_string = None # Store the successful connection string
@@ -85,6 +84,58 @@ def get_erp_db():
 class ErpService:
     """Contains all business logic for querying the ERP database."""
 
+    def get_raw_material_inventory(self):
+        """
+        Retrieves all raw material inventory, categorized by status, based on the provided JS logic.
+        """
+        db = get_erp_db()
+        sql = """
+            SELECT
+                p.pr_codenum AS PartNumber,
+                -- Truly Available (Approved, not tied to job/staging/quarantine)
+                SUM(CASE 
+                    WHEN f.fi_type NOT IN ('quarantine', 'job', 'staging') AND (f.fi_qc IS NULL OR f.fi_qc <> 'Pending')
+                    THEN f.fi_balance ELSE 0 END) AS on_hand_approved,
+                -- Pending QC
+                SUM(CASE WHEN f.fi_qc = 'Pending' THEN f.fi_balance ELSE 0 END) AS on_hand_pending_qc,
+                -- Issued to Jobs
+                SUM(CASE WHEN f.fi_type = 'job' AND f.fi_action = 'Issued inventory' THEN f.fi_balance ELSE 0 END) AS issued_to_job,
+                -- Staged for Production
+                SUM(CASE WHEN f.fi_type = 'staging' THEN f.fi_balance ELSE 0 END) AS staged
+            FROM 
+                dtfifo f
+            JOIN 
+                dmprod p ON f.fi_prid = p.pr_id
+            WHERE
+                f.fi_balance > 0
+                AND p.pr_codenum NOT LIKE 'T%' -- Exclude Finished Goods
+            GROUP BY
+                p.pr_codenum;
+        """
+        return db.execute_query(sql)
+
+    def get_purchase_order_data(self):
+        """
+        Fetches genuinely open purchase order lines, based on the provided JS logic.
+        """
+        db = get_erp_db()
+        sql = """
+            SELECT 
+                pur.pu_ourcode AS "Part Number", 
+                SUM(ISNULL(pur.pu_quant, 0) - ISNULL(pur.pu_recman, 0)) AS "OpenPOQuantity"
+            FROM 
+                dtpur pur
+            INNER JOIN 
+                dttpur tp ON pur.pu_purnum = tp.tp_purnum
+            WHERE 
+                (ISNULL(pur.pu_quant, 0) - ISNULL(pur.pu_recman, 0)) > 0
+                AND tp.tp_ordtype = 'p'
+                AND tp.tp_recevd IS NULL
+            GROUP BY 
+                pur.pu_ourcode;
+        """
+        return db.execute_query(sql)
+
     def get_qc_pending_data(self):
         """
         Retrieves all inventory items that are currently in a 'QC Pending' status.
@@ -118,70 +169,7 @@ class ErpService:
         """
         return db.execute_query(sql)
 
-    def get_purchase_order_data(self):
-        # ... (this method remains unchanged)
-        db = get_erp_db()
-        sql = """
-            -- Comprehensive PO Information Query for MRP
-            SELECT 
-                -- ========== BASIC PO INFORMATION ==========
-                pur.pu_id as "PO Line ID",
-                pur.pu_purnum as "PO Number",
-                pur.pu_linenum as "Line Number",
-                
-                -- ========== VENDOR INFORMATION ==========
-                pur.pu_vnddesc as "Vendor Description",
-                pur.pu_vndcode as "Vendor Code",
-                
-                -- ========== PRODUCT INFORMATION ==========
-                pur.pu_ourcode as "Our Part Code",
-                pr.pr_codenum as "Part Number",
-                pr.pr_descrip as "Part Description",
-                cat.ca_name as "Product Category",
-                
-                -- ========== QUANTITY INFORMATION ==========
-                pur.pu_quant as "Ordered Quantity",
-                pur.pu_recman as "Received Quantity",
-                
-                -- ========== DATES AND TIMELINES ==========
-                pur.pu_wanted as "Wanted Date",
-                pur.pu_promise as "Promise Date",
-                pur.pu_duedock as "Due Date",
-                
-                -- ========== STATUS AND FLAGS ==========
-                CASE 
-                    WHEN pur.pu_recman >= pur.pu_quant THEN 'Fully Received'
-                    WHEN pur.pu_recman > 0 THEN 'Partially Received'
-                    ELSE 'Open'
-                END as "Line Status",
-                
-                -- ========== JOB AND PROJECT INFORMATION ==========
-                pur.pu_jobnum as "Job Number",
-                
-                -- ========== CALCULATED FIELDS FOR MRP ==========
-                (pur.pu_quant - pur.pu_recman) as "Open Quantity",
-                
-                -- ========== MRP CRITICAL FLAGS ==========
-                CASE 
-                    WHEN (pur.pu_quant - pur.pu_recman) > 0 AND pur.pu_duedock < GETDATE() THEN 'Overdue'
-                    WHEN (pur.pu_quant - pur.pu_recman) > 0 AND pur.pu_duedock <= DATEADD(day, 7, GETDATE()) THEN 'Due This Week'
-                    WHEN (pur.pu_quant - pur.pu_recman) > 0 THEN 'Future Due'
-                    ELSE 'Complete'
-                END as "MRP Status"
-
-            FROM dtpur pur
-            LEFT JOIN dmprod pr ON pur.pu_prid = pr.pr_id
-            LEFT JOIN dmcats cat ON pr.pr_caid = cat.ca_id
-            LEFT JOIN dmunit pur_unit ON pur.pu_prunid = pur_unit.un_id
-            WHERE pr.pr_active = 1
-            ORDER BY 
-                pur.pu_purnum DESC,
-                pur.pu_linenum;
-        """
-        return db.execute_query(sql)
-
     def get_bom_data(self, parent_part_number=None):
-        # ... (this method remains unchanged) ...
         db = get_erp_db()
         sql = """
             -- Comprehensive BOM Query - All Active BOMs with Latest Revisions
@@ -286,7 +274,6 @@ class ErpService:
         return db.execute_query(sql, params)
     
     def get_open_jobs_by_line(self, facility, line):
-        # ... (this method remains unchanged) ...
         db = get_erp_db()
         sql = """
             SELECT DISTINCT
@@ -334,7 +321,6 @@ class ErpService:
         return db.execute_query(sql, (line, facility))
 
     def get_on_hand_inventory(self):
-        # ... (this method remains unchanged) ...
         db = get_erp_db()
         sql = """
             SELECT
@@ -353,7 +339,6 @@ class ErpService:
         return db.execute_query(sql)
 
     def get_split_fg_on_hand_value(self):
-        # ... (this method remains unchanged) ...
         today = datetime.now()
 
         # --- MODIFIED DATE & LABEL LOGIC ---
@@ -415,7 +400,6 @@ class ErpService:
         return {'label1': label1, 'value1': 0, 'label2': label2, 'value2': 0, 'label3': label3, 'value3': 0}
 
     def get_shipped_for_current_month(self):
-        # ... (this method remains unchanged) ...
         db = get_erp_db()
         sql = """
             SELECT
@@ -435,7 +419,6 @@ class ErpService:
         return 0
 
     def get_open_order_schedule(self):
-        # ... (this method remains unchanged) ...
         db = get_erp_db()
         sql = """
             WITH LatestOrderStatus AS (

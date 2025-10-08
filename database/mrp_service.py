@@ -1,11 +1,14 @@
-# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-953d9e6915ad7fa465db9a8f87b8a56d713b0537/database/mrp_service.py
+# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-5bb4163f1c166071f5c302dee6ed03e0344576eb/database/mrp_service.py
 """
 MRP (Material Requirements Planning) Service
 This service contains the core logic for calculating production suggestions.
 """
 
 from .erp_connection import get_erp_service
-from . import capacity_db
+from .capacity import ProductionCapacityDB
+
+# Create an instance of the capacity DB directly
+capacity_db = ProductionCapacityDB()
 
 class MRPService:
     def __init__(self):
@@ -16,7 +19,6 @@ class MRPService:
         Fetches and processes raw material/component inventory from the ERP.
         Returns a dictionary mapping part numbers to their available and pending QC quantities.
         """
-        # This is the final query you confirmed was needed.
         inventory_data = self.erp.get_raw_material_inventory() 
         
         inventory = {}
@@ -46,7 +48,12 @@ class MRPService:
         sales_orders = self.erp.get_open_order_schedule()
         boms = self.erp.get_bom_data()
         purchase_orders = self.erp.get_purchase_order_data()
-        inventory = self.get_component_inventory()
+        component_inventory = self.get_component_inventory()
+        
+        # --- FIX: Fetch Finished Good Inventory to calculate Net Qty ---
+        finished_good_inventory_data = self.erp.get_on_hand_inventory()
+        fg_inventory_map = {item['PartNumber']: item['TotalOnHand'] for item in finished_good_inventory_data}
+        
         capacities = {c['line_id']: c['capacity_per_shift'] for c in capacity_db.get_all()}
         print(f"MRP RUN: Found {len(sales_orders)} SO lines, {len(boms)} BOM lines, {len(purchase_orders)} PO lines.")
 
@@ -70,10 +77,19 @@ class MRPService:
         mrp_results = []
         for so in sales_orders:
             part_number = so['Part']
-            required_qty = so.get('Net Qty', 0)
+            
+            # --- FIX: Calculate Net Qty here ---
+            on_hand_qty = fg_inventory_map.get(part_number, 0)
+            ord_qty_curr_level = so.get('Ord Qty - Cur. Level', 0)
+            net_qty = ord_qty_curr_level - on_hand_qty
+            
+            # Store the calculated Net Qty back into the sales order object for display
+            so['Net Qty'] = net_qty if net_qty > 0 else 0
+            
+            required_qty = so['Net Qty'] # Use the newly calculated value
             
             if required_qty <= 0:
-                continue # Skip orders that don't need production
+                continue 
 
             so_result = {
                 'sales_order': so,
@@ -91,7 +107,7 @@ class MRPService:
                     
                     if qty_per_unit <= 0: continue
 
-                    comp_inv = inventory.get(comp_part_num, {'approved': 0, 'pending_qc': 0})
+                    comp_inv = component_inventory.get(comp_part_num, {'approved': 0, 'pending_qc': 0})
                     open_po_qty = pos_by_part.get(comp_part_num, 0)
                     
                     # AVAILABILITY CALCULATION
