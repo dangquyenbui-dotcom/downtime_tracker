@@ -354,6 +354,15 @@
         <div class="action-desc">Browse open Purchase Orders from the ERP.</div>
     </a>
     {% endif %}
+
+    {# NEW: MRP Viewer Card - For Admins and Scheduling admins #}
+    {% if user.is_admin or user.is_scheduling_admin %}
+    <a href="{{ url_for('mrp.view_mrp') }}" class="action-card admin">
+        <div class="action-icon">🧠</div>
+        <div class="action-title">MRP Suggestions</div>
+        <div class="action-desc">View production suggestions based on material availability.</div>
+    </a>
+    {% endif %}
     
     {# Report Downtime: For DowntimeTracker_Admin and DowntimeTracker_User #}
     {% if user.is_admin or user.is_user %}

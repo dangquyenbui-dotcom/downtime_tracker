@@ -1,4 +1,4 @@
-# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-953d9e6915ad7fa465db9a8f87b8a56d713b0537/app.py
+# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-5bb4163f1c166071f5c302dee6ed03e0344576eb/app.py
 # app.py - UPDATED to include PO Blueprint
 
 """
@@ -47,7 +47,7 @@ def create_app():
     
     return app
 
-# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-953d9e6915ad7fa465db9a8f87b8a56d713b0537/app.py
+# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-5bb4163f1c166071f5c302dee6ed03e0344576eb/app.py
 # ... (imports and create_app function are the same) ...
 
 def register_blueprints(app):
@@ -59,6 +59,7 @@ def register_blueprints(app):
     from routes.reports import reports_bp
     from routes.bom import bom_bp
     from routes.po import po_bp
+    from routes.mrp import mrp_bp
     from routes.admin.panel import admin_panel_bp
     from routes.admin.facilities import admin_facilities_bp
     from routes.admin.production_lines import admin_lines_bp
@@ -76,6 +77,7 @@ def register_blueprints(app):
     app.register_blueprint(reports_bp)
     app.register_blueprint(bom_bp)
     app.register_blueprint(po_bp)
+    app.register_blueprint(mrp_bp)
     
     # Register all admin blueprints under the /admin prefix
     app.register_blueprint(admin_panel_bp, url_prefix='/admin')
