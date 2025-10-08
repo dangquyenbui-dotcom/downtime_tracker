@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- INITIALIZATION ---
     initializeColumnToggle(); // Set up column toggling first
+    initializeSorting();      // NEW: Set up sorting
     attachAllEventListeners();
     
     // 1. Populate filters with all possible options from the full dataset first.
@@ -26,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- EVENT LISTENERS ---
 function attachAllEventListeners() {
     document.getElementById('facilityFilter').addEventListener('change', filterGrid);
-    document.getElementById('buFilter').addEventListener('change', filterGrid); // MODIFIED
+    document.getElementById('buFilter').addEventListener('change', filterGrid);
     document.getElementById('soTypeFilter').addEventListener('change', filterGrid);
     document.getElementById('customerFilter').addEventListener('change', filterGrid);
     document.getElementById('dueShipFilter').addEventListener('change', filterGrid);
@@ -45,7 +46,7 @@ function attachAllEventListeners() {
 function saveFilters() {
     const filters = {
         facility: document.getElementById('facilityFilter').value,
-        bu: document.getElementById('buFilter').value, // MODIFIED
+        bu: document.getElementById('buFilter').value,
         soType: document.getElementById('soTypeFilter').value,
         customer: document.getElementById('customerFilter').value,
         dueShip: document.getElementById('dueShipFilter').value,
@@ -57,17 +58,16 @@ function restoreFilters() {
     const savedFilters = JSON.parse(sessionStorage.getItem('schedulingFilters'));
     if (savedFilters) {
         document.getElementById('facilityFilter').value = savedFilters.facility || '';
-        document.getElementById('buFilter').value = savedFilters.bu || ''; // MODIFIED
+        document.getElementById('buFilter').value = savedFilters.bu || '';
         document.getElementById('soTypeFilter').value = savedFilters.soType || '';
         document.getElementById('customerFilter').value = savedFilters.customer || '';
         document.getElementById('dueShipFilter').value = savedFilters.dueShip || '';
     }
 }
 
-// --- NEW: RESET FILTERS ---
 function resetFilters() {
     document.getElementById('facilityFilter').value = '';
-    document.getElementById('buFilter').value = ''; // MODIFIED
+    document.getElementById('buFilter').value = '';
     document.getElementById('soTypeFilter').value = '';
     document.getElementById('customerFilter').value = '';
     document.getElementById('dueShipFilter').value = '';
@@ -118,7 +118,7 @@ function updateForecastCards(totalNoLowRisk, totalHighRisk) {
     const fgCurrent = getValueFromCardById('fg-on-hand-current');
     const fgFuture = getValueFromCardById('fg-on-hand-future');
 
-    // Calculate "Likely" forecast --- THIS IS THE CORRECTED LINE ---
+    // Calculate "Likely" forecast
     const forecastLikelyValue = shippedCurrentMonth + totalNoLowRisk + fgBefore + fgCurrent;
 
     // Calculate "May Be" forecast
@@ -174,7 +174,7 @@ function populateSelect(selectId, options, addBlankOption = false, selectedValue
 function updateFilterOptions() {
     // Get current selections to preserve them
     const selectedFacility = document.getElementById('facilityFilter').value;
-    const selectedBU = document.getElementById('buFilter').value; // MODIFIED
+    const selectedBU = document.getElementById('buFilter').value;
     const selectedSoType = document.getElementById('soTypeFilter').value;
     const selectedCustomer = document.getElementById('customerFilter').value;
     const selectedDueDate = document.getElementById('dueShipFilter').value;
@@ -190,7 +190,7 @@ function updateFilterOptions() {
             if (row.cells.length < 5) return;
             
             const facility = row.querySelector('[data-field="Facility"]')?.textContent || '';
-            const bu = row.querySelector('[data-field="BU"]')?.textContent || ''; // MODIFIED
+            const bu = row.querySelector('[data-field="BU"]')?.textContent || '';
             const soType = row.querySelector('[data-field="SO Type"]')?.textContent || '';
             const customer = row.querySelector('[data-field="Customer Name"]')?.textContent || '';
             const dueDate = row.querySelector('[data-field="Due to Ship"]')?.textContent.trim() || '';
@@ -198,7 +198,7 @@ function updateFilterOptions() {
 
             let matches = true;
             if (filterToUpdate !== 'facility' && selectedFacility && facility !== selectedFacility) matches = false;
-            if (filterToUpdate !== 'bu' && selectedBU && bu !== selectedBU) matches = false; // MODIFIED
+            if (filterToUpdate !== 'bu' && selectedBU && bu !== selectedBU) matches = false;
             if (filterToUpdate !== 'soType' && selectedSoType && soType !== selectedSoType) matches = false;
             if (filterToUpdate !== 'customer' && selectedCustomer && customer !== selectedCustomer) matches = false;
             if (filterToUpdate !== 'dueShip' && selectedDueDate) {
@@ -209,7 +209,7 @@ function updateFilterOptions() {
             if (matches) {
                 switch(filterToUpdate) {
                     case 'facility': options.add(facility); break;
-                    case 'bu': options.add(bu); break; // MODIFIED
+                    case 'bu': options.add(bu); break;
                     case 'soType': options.add(soType); break;
                     case 'customer': options.add(customer); break;
                     case 'dueShip': 
@@ -223,7 +223,7 @@ function updateFilterOptions() {
     };
     
     const facilityOpts = getOptionsFor('facility');
-    const buOpts = getOptionsFor('bu'); // MODIFIED
+    const buOpts = getOptionsFor('bu');
     const soTypeOpts = getOptionsFor('soType');
     const customerOpts = getOptionsFor('customer');
     const dueDateOpts = getOptionsFor('dueShip');
@@ -235,7 +235,7 @@ function updateFilterOptions() {
     });
 
     populateSelect('facilityFilter', facilityOpts.options, false, selectedFacility);
-    populateSelect('buFilter', buOpts.options, false, selectedBU); // MODIFIED
+    populateSelect('buFilter', buOpts.options, false, selectedBU);
     populateSelect('soTypeFilter', soTypeOpts.options, false, selectedSoType);
     populateSelect('customerFilter', customerOpts.options, false, selectedCustomer);
     populateSelect('dueShipFilter', sortedDueDates, dueDateOpts.hasBlank, selectedDueDate);
@@ -243,7 +243,7 @@ function updateFilterOptions() {
 
 function filterGrid() {
     const facilityFilter = document.getElementById('facilityFilter').value;
-    const buFilter = document.getElementById('buFilter').value; // MODIFIED
+    const buFilter = document.getElementById('buFilter').value;
     const soTypeFilter = document.getElementById('soTypeFilter').value;
     const customerFilter = document.getElementById('customerFilter').value;
     const dueShipFilter = document.getElementById('dueShipFilter').value;
@@ -251,14 +251,14 @@ function filterGrid() {
     document.getElementById('schedule-body').querySelectorAll('tr').forEach(row => {
         if (row.cells.length < 2) return;
         const facility = row.querySelector('[data-field="Facility"]')?.textContent || '';
-        const bu = row.querySelector('[data-field="BU"]')?.textContent || ''; // MODIFIED
+        const bu = row.querySelector('[data-field="BU"]')?.textContent || '';
         const soType = row.querySelector('[data-field="SO Type"]')?.textContent || '';
         const customer = row.querySelector('[data-field="Customer Name"]')?.textContent || '';
         const dueDate = row.querySelector('[data-field="Due to Ship"]')?.textContent.trim() || '';
         
         let show = true;
         if (facilityFilter && facility !== facilityFilter) show = false;
-        if (buFilter && bu !== buFilter) show = false; // MODIFIED
+        if (buFilter && bu !== buFilter) show = false;
         if (soTypeFilter && soType !== soTypeFilter) show = false;
         if (customerFilter && customer !== customerFilter) show = false;
         
@@ -367,6 +367,100 @@ function applyColumnVisibility(config) {
             });
         }
     }
+}
+
+// --- NEW: SORTING LOGIC ---
+let sortState = {
+    column: null,
+    direction: 'none' // 'asc', 'desc', 'none'
+};
+
+function initializeSorting() {
+    document.querySelectorAll('.grid-table .sortable').forEach(th => {
+        th.addEventListener('click', handleSort);
+    });
+}
+
+function handleSort(e) {
+    const th = e.currentTarget;
+    const columnId = th.dataset.columnId;
+    const columnType = th.dataset.type || 'string';
+    const columnIndex = Array.from(th.parentElement.children).indexOf(th);
+
+    let newDirection;
+    if (sortState.column === columnId) {
+        if (sortState.direction === 'asc') newDirection = 'desc';
+        else newDirection = 'asc';
+    } else {
+        newDirection = 'asc';
+    }
+
+    sortState.column = columnId;
+    sortState.direction = newDirection;
+
+    sortTable(columnIndex, columnType, newDirection);
+    updateSortIndicators();
+}
+
+function updateSortIndicators() {
+    document.querySelectorAll('.grid-table .sortable').forEach(th => {
+        const indicator = th.querySelector('.sort-indicator');
+        if (!indicator) return;
+
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        indicator.textContent = '';
+
+        if (th.dataset.columnId === sortState.column) {
+            if (sortState.direction === 'asc') {
+                th.classList.add('sorted-asc');
+                indicator.textContent = '▲';
+            } else if (sortState.direction === 'desc') {
+                th.classList.add('sorted-desc');
+                indicator.textContent = '▼';
+            }
+        }
+    });
+}
+
+function getSortValue(cell, type) {
+    if (!cell) return null;
+    const text = cell.textContent.trim();
+
+    switch (type) {
+        case 'numeric':
+            return parseFloat(text.replace(/[$,]/g, '')) || 0;
+        case 'date':
+            if (!text || !text.includes('/')) return new Date(0); // Put empty dates at the beginning
+            const parts = text.split('/'); // MM/DD/YY
+            return new Date(`20${parts[2]}`, parts[0] - 1, parts[1]);
+        default: // string
+            return text.toLowerCase();
+    }
+}
+
+function sortTable(columnIndex, columnType, direction) {
+    const tbody = document.getElementById('schedule-body');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    rows.sort((a, b) => {
+        const valA = getSortValue(a.cells[columnIndex], columnType);
+        const valB = getSortValue(b.cells[columnIndex], columnType);
+        
+        let comparison = 0;
+        if (valA > valB) {
+            comparison = 1;
+        } else if (valA < valB) {
+            comparison = -1;
+        }
+
+        return direction === 'asc' ? comparison : -comparison;
+    });
+
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+    
+    // Re-attach listeners to editable cells as sorting rebuilds the table body
+    attachEditableListeners(tbody);
 }
 
 

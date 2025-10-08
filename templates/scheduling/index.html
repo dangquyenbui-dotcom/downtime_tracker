@@ -106,6 +106,10 @@
         background-color: #f8d7da;
         color: #721c24;
     }
+    .highlight-purple { /* NEW */
+        background-color: #e9d8fd;
+        color: #553c9a;
+    }
     [data-theme="dark"] .highlight-green {
         background-color: rgba(104, 211, 145, 0.2);
         color: #c6f6d5;
@@ -113,6 +117,10 @@
     [data-theme="dark"] .highlight-red {
         background-color: rgba(252, 129, 129, 0.2);
         color: #fccfcf;
+    }
+    [data-theme="dark"] .highlight-purple { /* NEW */
+        background-color: rgba(183, 148, 244, 0.2);
+        color: var(--accent-purple);
     }
     .summary-grid {
         display: grid;
@@ -248,6 +256,28 @@
         color: var(--alert-warning-text);
         border-color: var(--alert-warning-border);
     }
+    
+    /* --- NEW Sorting Styles --- */
+    .sortable {
+        cursor: pointer;
+        position: relative;
+    }
+    .sortable:hover {
+        background-color: var(--bg-hover);
+    }
+    .sort-indicator {
+        display: inline-block;
+        margin-left: 5px;
+        color: var(--text-tertiary);
+        opacity: 0.5;
+        transition: opacity 0.2s;
+        width: 1em; /* Reserve space */
+    }
+    .sortable.sorted-asc .sort-indicator,
+    .sortable.sorted-desc .sort-indicator {
+        opacity: 1;
+        color: var(--accent-blue);
+    }
 </style>
 {% endblock %}
 
@@ -338,31 +368,31 @@
     <table class="grid-table">
         <thead>
             <tr>
-                <th data-column-id="Facility">Facility</th>
-                <th data-column-id="BU">BU</th>
-                <th data-column-id="SO">SO</th>
-                <th data-column-id="Part">Part</th>
-                <th data-column-id="Description">Part Description</th>
-                <th data-column-id="Customer Name">Customer Name</th>
-                <th class="numeric" data-column-id="Ord Qty - (00) Level">Ord Qty - (00) Level</th>
-                <th class="numeric" data-column-id="Total Shipped Qty">Total Shipped Qty</th>
-                <th class="numeric" data-column-id="Ord Qty - Cur. Level">Ord Qty - Cur. Level</th>
-                <th class="numeric" data-column-id="Produced Qty">Produced Qty</th>
-                <th class="numeric" data-column-id="On hand Qty">On hand Qty</th>
-                <th class="numeric" data-column-id="Net Qty">Net Qty</th>
-                <th data-column-id="UoM">UoM</th>
-                <th class="numeric" data-column-id="Qty Per UoM">Qty Per UoM</th>
-                <th class="numeric highlight-red" data-column-id="Ext Qty">Ext Qty</th>
-                <th class="numeric" data-column-id="ERP Can Make">ERP Can Make</th>
-                <th class="numeric" data-column-id="ERP Low Risk">ERP Low Risk</th>
-                <th class="numeric" data-column-id="ERP High Risk">ERP High Risk</th>
-                <th class="numeric editable-header" data-column-id="No/Low Risk Qty">No/Low Risk Qty</th>
-                <th class="numeric editable-header" data-column-id="High Risk Qty">High Risk Qty</th>
-                <th class="numeric" data-column-id="Unit Price">Unit Price</th>
-                <th class="numeric highlight-green" data-column-id="$ No/Low Risk Qty">$ No/Low Risk Qty</th>
-                <th class="numeric highlight-red" data-column-id="$ High Risk">$ High Risk</th>
-                <th data-column-id="Sales Rep">Sales Rep</th>
-                <th data-column-id="Due to Ship">Due to Ship</th>
+                <th class="sortable" data-column-id="Facility" data-type="string">Facility<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="BU" data-type="string">BU<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="SO" data-type="numeric">SO<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="Part" data-type="string">Part<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="Description" data-type="string">Part Description<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="Customer Name" data-type="string">Customer Name<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="Ord Qty - (00) Level" data-type="numeric">Ord Qty - (00) Level<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="Total Shipped Qty" data-type="numeric">Total Shipped Qty<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="Ord Qty - Cur. Level" data-type="numeric">Ord Qty - Cur. Level<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="Produced Qty" data-type="numeric">Produced Qty<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="On hand Qty" data-type="numeric">On hand Qty<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="Net Qty" data-type="numeric">Net Qty<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="UoM" data-type="string">UoM<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="Qty Per UoM" data-type="numeric">Qty Per UoM<span class="sort-indicator"></span></th>
+                <th class="sortable numeric highlight-purple" data-column-id="Ext Qty" data-type="numeric">Ext Qty<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="ERP Can Make" data-type="numeric">ERP Can Make<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="ERP Low Risk" data-type="numeric">ERP Low Risk<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="ERP High Risk" data-type="numeric">ERP High Risk<span class="sort-indicator"></span></th>
+                <th class="sortable numeric editable-header" data-column-id="No/Low Risk Qty" data-type="numeric">No/Low Risk Qty<span class="sort-indicator"></span></th>
+                <th class="sortable numeric editable-header" data-column-id="High Risk Qty" data-type="numeric">High Risk Qty<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="Unit Price" data-type="numeric">Unit Price<span class="sort-indicator"></span></th>
+                <th class="sortable numeric highlight-green" data-column-id="$ No/Low Risk Qty" data-type="numeric">$ No/Low Risk Qty<span class="sort-indicator"></span></th>
+                <th class="sortable numeric highlight-red" data-column-id="$ High Risk" data-type="numeric">$ High Risk<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="Sales Rep" data-type="string">Sales Rep<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="Due to Ship" data-type="date">Due to Ship<span class="sort-indicator"></span></th>
             </tr>
         </thead>
         <tbody id="schedule-body">
@@ -382,7 +412,7 @@
                 <td class="numeric" data-field="Net Qty">{{ "{:,.2f}".format((row['Net Qty'] | float) or 0) }}</td>
                 <td data-field="UoM">{{ row['UoM'] }}</td>
                 <td class="numeric" data-field="Qty Per UoM">{{ row['Qty Per UoM'] }}</td>
-                <td class="numeric highlight-red">{{ "{:,.2f}".format((row['Ext Qty'] | float) or 0) }}</td>
+                <td class="numeric highlight-purple">{{ "{:,.2f}".format((row['Ext Qty'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Can Make - No Risk'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Low Risk'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['High Risk'] | float) or 0) }}</td>
