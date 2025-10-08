@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}MRP Results{% endblock %}
+{% block navbar_title %}🧠 MRP Suggestions{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<style>
+    .container { max-width: 98vw; }
+    .mrp-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: 10px;
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    .so-header {
+        background: var(--gradient-subtle);
+        padding: 15px 20px;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 15px;
+        align-items: center;
+        border-bottom: 1px solid var(--border-primary);
+    }
+    .so-info { font-size: 14px; }
+    .so-info label { font-size: 11px; color: var(--text-tertiary); display: block; }
+    .so-info strong { color: var(--text-primary); }
+    .bottleneck {
+        background: rgba(252, 129, 129, 0.1);
+        border: 1px solid var(--accent-red);
+        color: var(--accent-red);
+    }
+    [data-theme="dark"] .bottleneck { background: rgba(252, 129, 129, 0.2); }
+    .no-bottleneck {
+        background: rgba(104, 211, 145, 0.1);
+        border: 1px solid var(--accent-green);
+        color: var(--accent-green);
+    }
+    [data-theme="dark"] .no-bottleneck { background: rgba(104, 211, 145, 0.2); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="header-card">
+    <h1>Material Requirements Planning (MRP)</h1>
+    <p>Production suggestions for open Sales Orders based on material availability.</p>
+</div>
+
+{% for result in mrp_results %}
+<div class="mrp-card">
+    <div class="so-header">
+        <div class="so-info">
+            <label>Sales Order</label>
+            <strong>{{ result.sales_order.SO }}</strong>
+        </div>
+        <div class="so-info">
+            <label>Finished Good</label>
+            <strong>{{ result.sales_order.Part }}</strong>
+        </div>
+        <div class="so-info">
+            <label>Net Required Qty</label>
+            <strong>{{ "{:,.0f}".format(result.sales_order['Net Qty']) }}</strong>
+        </div>
+        <div class="so-info">
+            <label>Suggested Production Qty</label>
+            <strong style="font-size: 1.2em;">{{ "{:,.0f}".format(result.can_produce_qty) }}</strong>
+        </div>
+        <div class="so-info">
+            <label>Bottleneck Component</label>
+            <strong class="{{ 'bottleneck' if result.can_produce_qty < result.sales_order['Net Qty'] else 'no-bottleneck' }}" style="padding: 5px; border-radius: 5px; text-align: center;">
+                {{ result.bottleneck or 'None' }}
+            </strong>
+        </div>
+    </div>
+    <div class="data-table">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Component Part</th>
+                    <th>Description</th>
+                    <th>Total Required</th>
+                    <th>On-Hand (Approved)</th>
+                    <th>On-Hand (QC Hold)</th>
+                    <th>Open PO Qty</th>
+                    <th>Total Available</th>
+                    <th>Shortfall</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comp in result.components %}
+                <tr class="{{ 'bottleneck' if comp.part_number == result.bottleneck else '' }}">
+                    <td>{{ comp.part_number }}</td>
+                    <td>{{ comp.description }}</td>
+                    <td>{{ "{:,.2f}".format(comp.total_required) }}</td>
+                    <td>{{ "{:,.2f}".format(comp.on_hand_approved) }}</td>
+                    <td>{{ "{:,.2f}".format(comp.on_hand_pending_qc) }}</td>
+                    <td>{{ "{:,.2f}".format(comp.open_po_qty) }}</td>
+                    <td><strong>{{ "{:,.2f}".format(comp.total_available) }}</strong></td>
+                    <td class="{{ 'bottleneck' if comp.shortfall > 0 else '' }}">
+                        <strong>{{ "{:,.2f}".format(comp.shortfall) }}</strong>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

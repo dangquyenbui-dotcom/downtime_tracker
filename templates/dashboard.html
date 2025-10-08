@@ -336,6 +336,24 @@
         <div class="action-desc">Manage production projections for open orders.</div>
     </a>
     {% endif %}
+
+    {# BOM Viewer Card - For Admins and Scheduling users #}
+    {% if user.is_admin or user.is_scheduling_admin or user.is_scheduling_user %}
+    <a href="{{ url_for('bom.view_boms') }}" class="action-card">
+        <div class="action-icon">📜</div>
+        <div class="action-title">BOM Viewer</div>
+        <div class="action-desc">Browse Bill of Materials data from the ERP.</div>
+    </a>
+    {% endif %}
+    
+    {# NEW: PO Viewer Card - For Admins and Scheduling users #}
+    {% if user.is_admin or user.is_scheduling_admin or user.is_scheduling_user %}
+    <a href="{{ url_for('po.view_pos') }}" class="action-card">
+        <div class="action-icon">📦</div>
+        <div class="action-title">PO Viewer</div>
+        <div class="action-desc">Browse open Purchase Orders from the ERP.</div>
+    </a>
+    {% endif %}
     
     {# Report Downtime: For DowntimeTracker_Admin and DowntimeTracker_User #}
     {% if user.is_admin or user.is_user %}
@@ -366,6 +384,5 @@
 {% block scripts %}
 <script>
     // No page-specific JavaScript needed for dashboard
-    // All functionality is handled by base theme.js
 </script>
 {% endblock %}

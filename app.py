@@ -1,4 +1,5 @@
-# app.py - UPDATED with enhanced debugging and HTTPS redirect fix
+# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-953d9e6915ad7fa465db9a8f87b8a56d713b0537/app.py
+# app.py - UPDATED to include PO Blueprint
 
 """
 Production Portal - Main Application
@@ -15,7 +16,7 @@ import socket
 from i18n_config import I18nConfig, _, format_datetime_i18n, format_date_i18n
 
 def create_app():
-    """Application factory pattern"""
+    # ... (function remains unchanged) ...
     app = Flask(__name__)
     
     # Configuration
@@ -46,6 +47,9 @@ def create_app():
     
     return app
 
+# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-953d9e6915ad7fa465db9a8f87b8a56d713b0537/app.py
+# ... (imports and create_app function are the same) ...
+
 def register_blueprints(app):
     """Register all application blueprints"""
     from routes.main import main_bp
@@ -53,6 +57,8 @@ def register_blueprints(app):
     from routes.erp_routes import erp_bp
     from routes.scheduling import scheduling_bp 
     from routes.reports import reports_bp
+    from routes.bom import bom_bp
+    from routes.po import po_bp
     from routes.admin.panel import admin_panel_bp
     from routes.admin.facilities import admin_facilities_bp
     from routes.admin.production_lines import admin_lines_bp
@@ -60,6 +66,7 @@ def register_blueprints(app):
     from routes.admin.audit import admin_audit_bp
     from routes.admin.shifts import admin_shifts_bp
     from routes.admin.users import admin_users_bp
+    from routes.admin.capacity import admin_capacity_bp # <-- IMPORT THE NEW BLUEPRINT
     
     # Register blueprints
     app.register_blueprint(main_bp)
@@ -67,6 +74,8 @@ def register_blueprints(app):
     app.register_blueprint(erp_bp)
     app.register_blueprint(scheduling_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(bom_bp)
+    app.register_blueprint(po_bp)
     
     # Register all admin blueprints under the /admin prefix
     app.register_blueprint(admin_panel_bp, url_prefix='/admin')
@@ -76,7 +85,11 @@ def register_blueprints(app):
     app.register_blueprint(admin_audit_bp, url_prefix='/admin')
     app.register_blueprint(admin_shifts_bp, url_prefix='/admin')
     app.register_blueprint(admin_users_bp, url_prefix='/admin')
+    app.register_blueprint(admin_capacity_bp, url_prefix='/admin') # <-- REGISTER THE NEW BLUEPRINT
 
+# ... (rest of app.py remains the same) ...
+
+# ... (rest of app.py remains unchanged) ...
 def initialize_database():
     """Initialize database connection and verify tables"""
     from database.connection import DatabaseConnection
@@ -102,7 +115,7 @@ def get_local_ip():
 def test_services():
     """Test all service connections on startup"""
     print("\n" + "="*60)
-    print("PRODUCTION PORTAL v1.8.0 - STARTUP DIAGNOSTICS")
+    print("PRODUCTION PORTAL v2.1.0 - STARTUP DIAGNOSTICS") # Updated version
     print("="*60)
     
     from database.connection import DatabaseConnection
@@ -130,7 +143,7 @@ if __name__ == '__main__':
     local_ip = get_local_ip()
     
     print("\n" + "="*50)
-    print("PRODUCTION PORTAL v1.8.0 - CONFIGURATION")
+    print("PRODUCTION PORTAL v2.1.0 - CONFIGURATION") # Updated version
     print("="*50)
     print(f"Mode: {'TEST' if Config.TEST_MODE else 'PRODUCTION'}")
     print(f"Database: {Config.DB_SERVER}/{Config.DB_NAME}")
@@ -142,24 +155,21 @@ if __name__ == '__main__':
     
     app = create_app()
     
+    # --- MODIFIED: Reverted to HTTP ---
     print("\n" + "="*60)
-    print("🚀 SERVER STARTING (HTTPS) - ACCESS URLS:")
+    print("🚀 SERVER STARTING (HTTP) - ACCESS URLS:")
     print("="*60)
-    print(f"Local:        https://localhost:5000")
-    print(f"Network:      https://{local_ip}:5000")
+    print(f"Local:        http://localhost:5000")
+    print(f"Network:      http://{local_ip}:5000")
     print("="*60)
-    print("\n⚠️ NOTE: Using a self-signed certificate for development.")
-    print("   Your browser will show a security warning. Please proceed.")
     print("\n📝 Make sure:")
     print("  1. Windows Firewall allows port 5000")
     print("  2. No antivirus blocking the connection")
-    print("  3. Network allows peer-to-peer connections")
     print("\nPress CTRL+C to stop the server\n")
     
-    # Use Flask's built-in server with ad-hoc SSL for secure development
+    # Use Flask's built-in server without SSL
     app.run(
         host='0.0.0.0',
         port=5000,
-        debug=True, # Enables detailed error messages and auto-reloading
-        ssl_context='adhoc' # Enables HTTPS with a self-signed certificate
+        debug=True # Enables detailed error messages and auto-reloading
     )
