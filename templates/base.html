@@ -19,7 +19,13 @@
 <body>
     {% block navbar %}
 <div class="navbar">
-    <h1>{% block navbar_title %}🏭 {{ _('Production Portal') }}{% endblock %}</h1>
+    <div class="navbar-brand">
+        <a href="{{ url_for('main.dashboard') }}" class="navbar-logo-link">
+            <img src="{{ url_for('static', filename='img/wepackitall-logo-final-rgb-web.jpg') }}" alt="WePackItAll Logo" class="logo-light">
+            <img src="{{ url_for('static', filename='img/wepackitall-logo-final-rgb-reversed-web.png') }}" alt="WePackItAll Logo" class="logo-dark">
+        </a>
+        <h1>{% block navbar_title %}🏭 {{ _('Production Portal') }}{% endblock %}</h1>
+    </div>
     <div class="nav-links">
         {% if session.user %}
         {% include 'components/language_selector.html' %}

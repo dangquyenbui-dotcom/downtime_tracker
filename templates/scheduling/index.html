@@ -223,6 +223,31 @@
     .column-toggle-dropdown input {
         margin-right: 10px;
     }
+
+    /* --- NEW 'Fix' Button Styles --- */
+    .suggestion-fix {
+        margin-left: 8px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: bold;
+        border-radius: 4px;
+        border: 1px solid;
+        cursor: pointer;
+        vertical-align: middle;
+        text-transform: uppercase;
+    }
+
+    .suggestion-fix.fix-shortfall { /* Red for shortfall */
+        background-color: var(--alert-error-bg);
+        color: var(--alert-error-text);
+        border-color: var(--alert-error-border);
+    }
+
+    .suggestion-fix.fix-surplus { /* Yellow for surplus */
+        background-color: var(--alert-warning-bg);
+        color: var(--alert-warning-text);
+        border-color: var(--alert-warning-border);
+    }
 </style>
 {% endblock %}
 
@@ -276,6 +301,10 @@
             <select id="facilityFilter" class="form-select filter-select"><option value="">All</option></select>
         </div>
         <div class="filter-group">
+            <label for="buFilter">BU:</label>
+            <select id="buFilter" class="form-select filter-select"><option value="">All</option></select>
+        </div>
+        <div class="filter-group">
             <label for="soTypeFilter">SO Type:</label>
             <select id="soTypeFilter" class="form-select filter-select"><option value="">All</option></select>
         </div>
@@ -310,8 +339,10 @@
         <thead>
             <tr>
                 <th data-column-id="Facility">Facility</th>
+                <th data-column-id="BU">BU</th>
                 <th data-column-id="SO">SO</th>
                 <th data-column-id="Part">Part</th>
+                <th data-column-id="Description">Part Description</th>
                 <th data-column-id="Customer Name">Customer Name</th>
                 <th class="numeric" data-column-id="Ord Qty - (00) Level">Ord Qty - (00) Level</th>
                 <th class="numeric" data-column-id="Total Shipped Qty">Total Shipped Qty</th>
@@ -319,6 +350,9 @@
                 <th class="numeric" data-column-id="Produced Qty">Produced Qty</th>
                 <th class="numeric" data-column-id="On hand Qty">On hand Qty</th>
                 <th class="numeric" data-column-id="Net Qty">Net Qty</th>
+                <th data-column-id="UoM">UoM</th>
+                <th class="numeric" data-column-id="Qty Per UoM">Qty Per UoM</th>
+                <th class="numeric highlight-red" data-column-id="Ext Qty">Ext Qty</th>
                 <th class="numeric" data-column-id="ERP Can Make">ERP Can Make</th>
                 <th class="numeric" data-column-id="ERP Low Risk">ERP Low Risk</th>
                 <th class="numeric" data-column-id="ERP High Risk">ERP High Risk</th>
@@ -327,6 +361,7 @@
                 <th class="numeric" data-column-id="Unit Price">Unit Price</th>
                 <th class="numeric highlight-green" data-column-id="$ No/Low Risk Qty">$ No/Low Risk Qty</th>
                 <th class="numeric highlight-red" data-column-id="$ High Risk">$ High Risk</th>
+                <th data-column-id="Sales Rep">Sales Rep</th>
                 <th data-column-id="Due to Ship">Due to Ship</th>
             </tr>
         </thead>
@@ -334,15 +369,20 @@
             {% for row in schedule_data %}
             <tr data-so-number="{{ row['SO'] }}" data-part-number="{{ row['Part'] }}">
                 <td data-field="Facility">{{ row['Facility'] }}</td>
+                <td data-field="BU">{{ row['BU'] }}</td>
                 <td data-field="SO">{{ row['SO'] }}</td>
                 <td data-field="Part">{{ row['Part'] }}</td>
+                <td data-field="Description">{{ row['Description'] }}</td>
                 <td data-field="Customer Name">{{ row['Customer Name'] }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Ord Qty - (00) Level'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Total Shipped Qty'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Ord Qty - Cur. Level'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Produced Qty'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['On hand Qty'] | float) or 0) }}</td>
-                <td class="numeric">{{ "{:,.2f}".format((row['Net Qty'] | float) or 0) }}</td>
+                <td class="numeric" data-field="Net Qty">{{ "{:,.2f}".format((row['Net Qty'] | float) or 0) }}</td>
+                <td data-field="UoM">{{ row['UoM'] }}</td>
+                <td class="numeric" data-field="Qty Per UoM">{{ row['Qty Per UoM'] }}</td>
+                <td class="numeric highlight-red">{{ "{:,.2f}".format((row['Ext Qty'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Can Make - No Risk'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Low Risk'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['High Risk'] | float) or 0) }}</td>
@@ -357,12 +397,13 @@
                 <td class="numeric">${{ "%.4f" | format((row['Unit Price'] | float) or 0) }}</td>
                 <td class="numeric highlight-green" data-calculated-for="No/Low Risk Qty">${{ "{:,.2f}".format((row['$ No/Low Risk Qty'] | float) or 0) }}</td>
                 <td class="numeric highlight-red" data-calculated-for="High Risk Qty">${{ "{:,.2f}".format((row['$ High Risk'] | float) or 0) }}</td>
+                <td data-field="Sales Rep">{{ row['Sales Rep'] }}</td>
                 <td data-field="Due to Ship">{{ row['Due to Ship'] or '' }}</td>
                 <td style="display:none;" data-field="SO Type">{{ row['SO Type'] }}</td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="20" style="text-align: center; padding: 20px;">No scheduling data found.</td>
+                <td colspan="25" style="text-align: center; padding: 20px;">No scheduling data found.</td>
             </tr>
             {% endfor %}
         </tbody>
