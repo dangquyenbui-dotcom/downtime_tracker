@@ -94,10 +94,13 @@ class ErpService:
                 p.pr_codenum AS PartNumber,
                 -- Truly Available (Approved, not tied to job/staging/quarantine)
                 SUM(CASE 
-                    WHEN f.fi_type NOT IN ('quarantine', 'job', 'staging') AND (f.fi_qc IS NULL OR f.fi_qc <> 'Pending')
+                    WHEN f.fi_type NOT IN ('quarantine', 'job', 'staging') 
+                    AND (f.fi_qc IS NULL OR f.fi_qc <> 'Pending')
                     THEN f.fi_balance ELSE 0 END) AS on_hand_approved,
                 -- Pending QC
                 SUM(CASE WHEN f.fi_qc = 'Pending' THEN f.fi_balance ELSE 0 END) AS on_hand_pending_qc,
+                -- Quarantine
+                SUM(CASE WHEN f.fi_type = 'quarantine' THEN f.fi_balance ELSE 0 END) AS on_hand_quarantine,
                 -- Issued to Jobs
                 SUM(CASE WHEN f.fi_type = 'job' AND f.fi_action = 'Issued inventory' THEN f.fi_balance ELSE 0 END) AS issued_to_job,
                 -- Staged for Production

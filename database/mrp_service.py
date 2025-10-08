@@ -17,26 +17,19 @@ class MRPService:
     def get_component_inventory(self):
         """
         Fetches and processes raw material/component inventory from the ERP.
-        Returns a dictionary mapping part numbers to their available and pending QC quantities.
+        Returns a dictionary mapping part numbers to their available quantities.
         """
-        inventory_data = self.erp.get_raw_material_inventory() 
-        
+        inventory_data = self.erp.get_raw_material_inventory()
         inventory = {}
         for row in inventory_data:
             part_number = row['PartNumber']
-            if part_number not in inventory:
-                inventory[part_number] = {'approved': 0, 'pending_qc': 0, 'total_on_hand': 0}
-
-            qc_status = row.get('QCStatus', 'A').strip().upper() # Default to 'A' (Approved) if status is missing
-            balance = row.get('Balance', 0)
-
-            if qc_status == 'A': # Approved
-                inventory[part_number]['approved'] += balance
-            elif qc_status == 'P': # Pending
-                inventory[part_number]['pending_qc'] += balance
-            
-            inventory[part_number]['total_on_hand'] += balance
-            
+            inventory[part_number] = {
+                'approved': row.get('on_hand_approved', 0),
+                'pending_qc': row.get('on_hand_pending_qc', 0),
+                'quarantine': row.get('on_hand_quarantine', 0),
+                'issued_to_job': row.get('issued_to_job', 0),
+                'staged': row.get('staged', 0)
+            }
         return inventory
 
     def calculate_mrp_suggestions(self):
@@ -107,7 +100,7 @@ class MRPService:
                     
                     if qty_per_unit <= 0: continue
 
-                    comp_inv = component_inventory.get(comp_part_num, {'approved': 0, 'pending_qc': 0})
+                    comp_inv = component_inventory.get(comp_part_num, {'approved': 0, 'pending_qc': 0, 'quarantine': 0})
                     open_po_qty = pos_by_part.get(comp_part_num, 0)
                     
                     # AVAILABILITY CALCULATION
@@ -120,6 +113,7 @@ class MRPService:
                         'total_required': required_qty * qty_per_unit,
                         'on_hand_approved': comp_inv['approved'],
                         'on_hand_pending_qc': comp_inv['pending_qc'],
+                        'on_hand_quarantine': comp_inv['quarantine'],
                         'open_po_qty': open_po_qty,
                         'total_available': available_qty,
                         'shortfall': max(0, (required_qty * qty_per_unit) - available_qty)
