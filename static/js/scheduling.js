@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- EVENT LISTENERS ---
 function attachAllEventListeners() {
     document.getElementById('facilityFilter').addEventListener('change', filterGrid);
+    document.getElementById('buFilter').addEventListener('change', filterGrid); // MODIFIED
     document.getElementById('soTypeFilter').addEventListener('change', filterGrid);
     document.getElementById('customerFilter').addEventListener('change', filterGrid);
     document.getElementById('dueShipFilter').addEventListener('change', filterGrid);
@@ -44,6 +45,7 @@ function attachAllEventListeners() {
 function saveFilters() {
     const filters = {
         facility: document.getElementById('facilityFilter').value,
+        bu: document.getElementById('buFilter').value, // MODIFIED
         soType: document.getElementById('soTypeFilter').value,
         customer: document.getElementById('customerFilter').value,
         dueShip: document.getElementById('dueShipFilter').value,
@@ -55,6 +57,7 @@ function restoreFilters() {
     const savedFilters = JSON.parse(sessionStorage.getItem('schedulingFilters'));
     if (savedFilters) {
         document.getElementById('facilityFilter').value = savedFilters.facility || '';
+        document.getElementById('buFilter').value = savedFilters.bu || ''; // MODIFIED
         document.getElementById('soTypeFilter').value = savedFilters.soType || '';
         document.getElementById('customerFilter').value = savedFilters.customer || '';
         document.getElementById('dueShipFilter').value = savedFilters.dueShip || '';
@@ -64,6 +67,7 @@ function restoreFilters() {
 // --- NEW: RESET FILTERS ---
 function resetFilters() {
     document.getElementById('facilityFilter').value = '';
+    document.getElementById('buFilter').value = ''; // MODIFIED
     document.getElementById('soTypeFilter').value = '';
     document.getElementById('customerFilter').value = '';
     document.getElementById('dueShipFilter').value = '';
@@ -114,8 +118,8 @@ function updateForecastCards(totalNoLowRisk, totalHighRisk) {
     const fgCurrent = getValueFromCardById('fg-on-hand-current');
     const fgFuture = getValueFromCardById('fg-on-hand-future');
 
-    // Calculate "Likely" forecast
-    const forecastLikelyValue = shippedCurrentMonth + totalNoLowRisk + fgCurrent;
+    // Calculate "Likely" forecast --- THIS IS THE CORRECTED LINE ---
+    const forecastLikelyValue = shippedCurrentMonth + totalNoLowRisk + fgBefore + fgCurrent;
 
     // Calculate "May Be" forecast
     const forecastMaybeValue = shippedCurrentMonth + totalNoLowRisk + totalHighRisk + fgBefore + fgCurrent + fgFuture;
@@ -170,6 +174,7 @@ function populateSelect(selectId, options, addBlankOption = false, selectedValue
 function updateFilterOptions() {
     // Get current selections to preserve them
     const selectedFacility = document.getElementById('facilityFilter').value;
+    const selectedBU = document.getElementById('buFilter').value; // MODIFIED
     const selectedSoType = document.getElementById('soTypeFilter').value;
     const selectedCustomer = document.getElementById('customerFilter').value;
     const selectedDueDate = document.getElementById('dueShipFilter').value;
@@ -185,6 +190,7 @@ function updateFilterOptions() {
             if (row.cells.length < 5) return;
             
             const facility = row.querySelector('[data-field="Facility"]')?.textContent || '';
+            const bu = row.querySelector('[data-field="BU"]')?.textContent || ''; // MODIFIED
             const soType = row.querySelector('[data-field="SO Type"]')?.textContent || '';
             const customer = row.querySelector('[data-field="Customer Name"]')?.textContent || '';
             const dueDate = row.querySelector('[data-field="Due to Ship"]')?.textContent.trim() || '';
@@ -192,6 +198,7 @@ function updateFilterOptions() {
 
             let matches = true;
             if (filterToUpdate !== 'facility' && selectedFacility && facility !== selectedFacility) matches = false;
+            if (filterToUpdate !== 'bu' && selectedBU && bu !== selectedBU) matches = false; // MODIFIED
             if (filterToUpdate !== 'soType' && selectedSoType && soType !== selectedSoType) matches = false;
             if (filterToUpdate !== 'customer' && selectedCustomer && customer !== selectedCustomer) matches = false;
             if (filterToUpdate !== 'dueShip' && selectedDueDate) {
@@ -202,6 +209,7 @@ function updateFilterOptions() {
             if (matches) {
                 switch(filterToUpdate) {
                     case 'facility': options.add(facility); break;
+                    case 'bu': options.add(bu); break; // MODIFIED
                     case 'soType': options.add(soType); break;
                     case 'customer': options.add(customer); break;
                     case 'dueShip': 
@@ -215,6 +223,7 @@ function updateFilterOptions() {
     };
     
     const facilityOpts = getOptionsFor('facility');
+    const buOpts = getOptionsFor('bu'); // MODIFIED
     const soTypeOpts = getOptionsFor('soType');
     const customerOpts = getOptionsFor('customer');
     const dueDateOpts = getOptionsFor('dueShip');
@@ -226,6 +235,7 @@ function updateFilterOptions() {
     });
 
     populateSelect('facilityFilter', facilityOpts.options, false, selectedFacility);
+    populateSelect('buFilter', buOpts.options, false, selectedBU); // MODIFIED
     populateSelect('soTypeFilter', soTypeOpts.options, false, selectedSoType);
     populateSelect('customerFilter', customerOpts.options, false, selectedCustomer);
     populateSelect('dueShipFilter', sortedDueDates, dueDateOpts.hasBlank, selectedDueDate);
@@ -233,6 +243,7 @@ function updateFilterOptions() {
 
 function filterGrid() {
     const facilityFilter = document.getElementById('facilityFilter').value;
+    const buFilter = document.getElementById('buFilter').value; // MODIFIED
     const soTypeFilter = document.getElementById('soTypeFilter').value;
     const customerFilter = document.getElementById('customerFilter').value;
     const dueShipFilter = document.getElementById('dueShipFilter').value;
@@ -240,12 +251,14 @@ function filterGrid() {
     document.getElementById('schedule-body').querySelectorAll('tr').forEach(row => {
         if (row.cells.length < 2) return;
         const facility = row.querySelector('[data-field="Facility"]')?.textContent || '';
+        const bu = row.querySelector('[data-field="BU"]')?.textContent || ''; // MODIFIED
         const soType = row.querySelector('[data-field="SO Type"]')?.textContent || '';
         const customer = row.querySelector('[data-field="Customer Name"]')?.textContent || '';
         const dueDate = row.querySelector('[data-field="Due to Ship"]')?.textContent.trim() || '';
         
         let show = true;
         if (facilityFilter && facility !== facilityFilter) show = false;
+        if (buFilter && bu !== buFilter) show = false; // MODIFIED
         if (soTypeFilter && soType !== soTypeFilter) show = false;
         if (customerFilter && customer !== customerFilter) show = false;
         
@@ -288,8 +301,8 @@ function initializeColumnToggle() {
         headers.forEach(th => {
             const id = th.dataset.columnId;
             if (id) {
-                // By default hide these columns
-                const defaultHidden = ['Ord Qty - (00) Level', 'Total Shipped Qty', 'Produced Qty', 'ERP Can Make', 'ERP Low Risk', 'ERP High Risk', 'Unit Price'];
+                // MODIFIED: Added new columns to the default hidden list
+                const defaultHidden = ['Ord Qty - (00) Level', 'Total Shipped Qty', 'Produced Qty', 'ERP Can Make', 'ERP Low Risk', 'ERP High Risk', 'Unit Price', 'Qty Per UoM', 'Sales Rep'];
                 savedConfig[id] = !defaultHidden.includes(id);
             }
         });
@@ -369,7 +382,7 @@ function validateRow(row) {
     if (existingFix) existingFix.remove();
 
     // Get values
-    const netQtyCell = row.cells[9];
+    const netQtyCell = row.querySelector('[data-field="Net Qty"]');
     const noLowRiskCell = row.querySelector('[data-risk-type="No/Low Risk Qty"]');
     const highRiskCell = row.querySelector('[data-risk-type="High Risk Qty"]');
 
@@ -384,20 +397,23 @@ function validateRow(row) {
 
     // Check if the difference is significant (handles floating point inaccuracies)
     if (Math.abs(difference) > 0.01) {
-        row.classList.add('row-warning'); // Always add warning if there's a discrepancy
+        row.classList.add('row-warning');
 
-        // ONLY show the "Fix" button if the total projected is LESS than the Net Qty
-        if (difference < 0) { // This means totalProjected is less than netQty
-            // Suggest a fix by adding the shortfall to the No/Low Risk Qty
-            const suggestedNoLowRisk = Math.max(0, noLowRiskQty - difference);
+        // Suggest a fix by adjusting the No/Low Risk Qty
+        const suggestedNoLowRisk = Math.max(0, noLowRiskQty - difference);
 
-            const fixButton = document.createElement('button');
-            fixButton.className = 'suggestion-fix';
-            fixButton.title = `Suggestion: Set to ${suggestedNoLowRisk.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} to match Net Qty`;
-            fixButton.textContent = 'Fix';
-            fixButton.dataset.suggestion = suggestedNoLowRisk;
-            fixButton.onclick = function() { applySuggestion(this); };
-            
+        const fixButton = document.createElement('button');
+        fixButton.textContent = 'Fix';
+        fixButton.dataset.suggestion = suggestedNoLowRisk;
+        fixButton.onclick = function() { applySuggestion(this); };
+
+        if (difference < 0) { // SHORTFALL
+            fixButton.className = 'suggestion-fix fix-shortfall';
+            fixButton.title = `SHORTFALL: Suggest setting No/Low Risk to ${suggestedNoLowRisk.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} to match Net Qty`;
+            noLowRiskCell.appendChild(fixButton);
+        } else { // SURPLUS
+            fixButton.className = 'suggestion-fix fix-surplus';
+            fixButton.title = `SURPLUS: Suggest setting No/Low Risk to ${suggestedNoLowRisk.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} to match Net Qty`;
             noLowRiskCell.appendChild(fixButton);
         }
     }
@@ -409,10 +425,65 @@ function applySuggestion(buttonElement) {
     const cell = buttonElement.closest('td');
 
     if (cell) {
-        // Set the new value and trigger the save process
+        // Store the original value before changing it, for error recovery
+        const originalValue = cell.getAttribute('data-original-value') || '0';
+
+        // 1. Visually update the cell and add a saving indicator
         cell.textContent = suggestion.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        cell.focus();
-        cell.blur();
+        const statusIndicator = document.createElement('span');
+        statusIndicator.className = 'status-indicator saving';
+        cell.appendChild(statusIndicator);
+
+        // 2. Gather data for the API call
+        const row = cell.closest('tr');
+        const soNumber = row.dataset.soNumber;
+        const partNumber = row.dataset.partNumber;
+        const riskType = cell.dataset.riskType;
+        const price = parseFloat(cell.dataset.price) || 0;
+        const payload = { so_number: soNumber, part_number: partNumber, risk_type: riskType, quantity: suggestion };
+
+        // 3. Make the API call to save the data
+        fetch('/scheduling/api/update-projection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (!response.ok) { throw new Error(`HTTP error ${response.status}`); }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // On success, update UI elements
+                statusIndicator.className = 'status-indicator success';
+                cell.setAttribute('data-original-value', suggestion.toString());
+
+                const calculatedCell = row.querySelector(`[data-calculated-for="${riskType}"]`);
+                if (calculatedCell) {
+                    const newDollarValue = suggestion * price;
+                    calculatedCell.textContent = newDollarValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                }
+                
+                calculateTotals(); // Update summary cards
+                validateRow(row); // Re-validate to remove the 'Fix' button
+                
+                setTimeout(() => { statusIndicator.remove(); }, 2000);
+            } else {
+                throw new Error(data.message || 'Save failed.');
+            }
+        })
+        .catch(error => {
+            // On failure, revert the change and show an error
+            console.error('Save Error:', error);
+            dtUtils.showAlert(`Save failed: ${error.message}`, 'error');
+            
+            // Revert visual change
+            cell.textContent = (parseFloat(originalValue) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            statusIndicator.className = 'status-indicator error';
+            
+            // Re-run validation to bring the 'Fix' button back
+            validateRow(row);
+        });
     }
 }
 
@@ -476,7 +547,7 @@ function handleCellBlur() {
                 calculatedCell.textContent = newDollarValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
             }
             calculateTotals();
-            setTimeout(() => { statusIndicator.style.opacity = '0'; }, 2000);
+            setTimeout(() => { statusIndicator.remove(); }, 2000);
         } else {
             throw new Error(data.message || 'Save failed.');
         }
@@ -484,10 +555,9 @@ function handleCellBlur() {
     .catch(error => {
         console.error('Save Error:', error);
         statusIndicator.className = 'status-indicator error';
-        el.innerHTML = (parseFloat(originalValue) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        el.textContent = (parseFloat(originalValue) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const errorIndicator = document.createElement('span');
         errorIndicator.className = 'status-indicator error';
-        errorIndicator.style.opacity = '1';
         el.appendChild(errorIndicator);
         dtUtils.showAlert(`Save failed: ${error.message}`, 'error');
     });

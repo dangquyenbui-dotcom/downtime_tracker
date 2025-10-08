@@ -179,8 +179,32 @@ body.loaded {
     gap: 15px;
 }
 
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 20px; /* MODIFIED: Increased space between logo and title */
+}
+
+.navbar-logo-link img {
+    height: 45px; /* MODIFIED: Increased logo height */
+    width: auto;
+}
+
+.logo-dark {
+    display: none;
+}
+.logo-light {
+    display: block;
+}
+[data-theme="dark"] .logo-light {
+    display: none;
+}
+[data-theme="dark"] .logo-dark {
+    display: block;
+}
+
 .navbar h1 {
-    font-size: 24px;
+    font-size: 20px; /* MODIFIED: Reduced title font size */
     font-weight: 600;
 }
 
@@ -570,6 +594,11 @@ textarea::placeholder {
         flex-direction: column;
         text-align: center;
         padding: 15px 20px;
+    }
+
+    .navbar-brand {
+        flex-direction: column;
+        gap: 10px;
     }
     
     .nav-links {

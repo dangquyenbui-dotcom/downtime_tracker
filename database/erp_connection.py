@@ -158,26 +158,33 @@ class ErpService:
         """
         today = datetime.now()
 
-        # Calculate cutoff dates
-        # cutoff_current_start: The 19th of the previous month. This is the start of the "current" period.
-        first_day_of_current_month = today.replace(day=1)
-        last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
-        cutoff_current_start = last_day_of_previous_month.replace(day=19)
-
-        # cutoff_future_start: The 19th of the current month. This is the start of the "future" period.
-        cutoff_future_start = today.replace(day=19)
+        # --- MODIFIED DATE & LABEL LOGIC ---
         
-        # Determine label dates
-        current_month_label_date = today
-        next_month_label_date = (today.replace(day=28) + timedelta(days=4))
+        # Calculate key date objects
+        first_of_this_month = today.replace(day=1)
+        last_of_previous_month = first_of_this_month - timedelta(days=1)
+        
+        # Define the cutoff dates for the SQL query
+        prior_cutoff_date = last_of_previous_month.replace(day=19)
+        current_cutoff_date = today.replace(day=19)
+        
+        # Define additional dates for labeling
+        current_eighteenth_date = today.replace(day=18)
+        
+        # Format date strings for the labels
+        date_format = '%m/%d/%y'
+        prior_cutoff_str = prior_cutoff_date.strftime(date_format)
+        current_eighteenth_str = current_eighteenth_date.strftime(date_format)
+        current_cutoff_str = current_cutoff_date.strftime(date_format)
+        
+        # Bucket 4: "FG On Hand - Prior (MM-1)/19/YY"
+        label1 = f"FG On Hand - Prior {prior_cutoff_str}"
+        # Bucket 5: "FG On Hand - (MM-1)/19/YY To MM/18/YY"
+        label2 = f"FG On Hand - {prior_cutoff_str} To {current_eighteenth_str}"
+        # Bucket 6: "FG On Hand - From MM/19/YY"
+        label3 = f"FG On Hand - From {current_cutoff_str}"
 
-        # Format labels
-        current_month_label = current_month_label_date.strftime('%m/%y')
-        next_month_label = next_month_label_date.strftime('%m/%y')
-
-        label1 = f"FG On Hand - Before {current_month_label}"
-        label2 = f"FG On Hand - For {current_month_label}"
-        label3 = f"FG On Hand - For {next_month_label}"
+        # --- END OF MODIFIED LOGIC ---
 
         db = get_erp_db()
         sql = """
@@ -194,7 +201,8 @@ class ErpService:
                 AND w.wa_name IN ('DUARTE', 'IRWINDALE');
         """
         
-        params = (cutoff_current_start, cutoff_current_start, cutoff_future_start, cutoff_future_start)
+        # Parameters for the query use the calculated cutoff dates
+        params = (prior_cutoff_date, prior_cutoff_date, current_cutoff_date, current_cutoff_date)
         result = db.execute_query(sql, params)
         
         if result:

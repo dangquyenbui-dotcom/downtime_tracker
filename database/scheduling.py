@@ -91,6 +91,15 @@ class SchedulingDB:
             price = erp_row.get('Unit Price', 0) or 0
             erp_row['$ No/Low Risk Qty'] = (erp_row['No/Low Risk Qty'] or 0) * price
             erp_row['$ High Risk'] = (erp_row['High Risk Qty'] or 0) * price
+            
+            # --- MODIFIED: Calculate 'Ext Qty' column ---
+            try:
+                qty_per_uom = float(erp_row.get('Qty Per UoM')) if erp_row.get('Qty Per UoM') else 1.0
+            except (ValueError, TypeError):
+                qty_per_uom = 1.0
+            
+            # Ensure both operands are floats before multiplying to prevent TypeError
+            erp_row['Ext Qty'] = float(erp_row.get('Net Qty') or 0.0) * qty_per_uom
         
         # Combine grid data with all summary card values
         return {
