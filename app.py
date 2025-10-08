@@ -1,4 +1,4 @@
-# app.py - UPDATED with enhanced debugging
+# app.py - UPDATED with enhanced debugging and HTTPS redirect fix
 
 """
 Production Portal - Main Application
@@ -143,20 +143,23 @@ if __name__ == '__main__':
     app = create_app()
     
     print("\n" + "="*60)
-    print("🚀 SERVER STARTING - ACCESS URLS:")
+    print("🚀 SERVER STARTING (HTTPS) - ACCESS URLS:")
     print("="*60)
-    print(f"Local:        http://localhost:5000")
-    print(f"Network:      http://{local_ip}:5000")
+    print(f"Local:        https://localhost:5000")
+    print(f"Network:      https://{local_ip}:5000")
     print("="*60)
+    print("\n⚠️ NOTE: Using a self-signed certificate for development.")
+    print("   Your browser will show a security warning. Please proceed.")
     print("\n📝 Make sure:")
     print("  1. Windows Firewall allows port 5000")
     print("  2. No antivirus blocking the connection")
     print("  3. Network allows peer-to-peer connections")
     print("\nPress CTRL+C to stop the server\n")
     
-    # Use Flask's built-in server for debugging
+    # Use Flask's built-in server with ad-hoc SSL for secure development
     app.run(
         host='0.0.0.0',
         port=5000,
-        debug=True # Enables detailed error messages and auto-reloading
+        debug=True, # Enables detailed error messages and auto-reloading
+        ssl_context='adhoc' # Enables HTTPS with a self-signed certificate
     )

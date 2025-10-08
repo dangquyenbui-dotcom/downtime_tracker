@@ -1,6 +1,6 @@
-Of course. I have rewritten the `README.md` file to be more comprehensive and to reflect all the latest updates to the application, including the UI enhancements and the detailed file structure you requested.
+Of course. I have rewritten the `README.md` file to be more comprehensive and to reflect all the latest updates, including the switch to HTTPS for development.
 
-Here is the updated `README.md`:
+Here is the updated `README.md` file with the new instructions:
 
 # Downtime Tracker & Production Scheduler
 
@@ -10,8 +10,61 @@ A robust, enterprise-ready web application designed for manufacturing environmen
 
 The application's hybrid data architecture connects to a **read-only ERP database** for live production data (like open sales orders) while storing all user-generated data—such as downtime events, scheduling projections, and audit logs—in a separate, fully-controlled local SQL Server database (`ProductionDB`).
 
-**Current Version:** 1.9.5 (UI & Calculation Enhancements)
+**Current Version:** 1.9.6 (HTTPS Security Enhancements)
 **Status:** Production Ready
+
+-----
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+  * Python 3.10+
+  * Microsoft SQL Server
+  * Access to an Active Directory domain (for production authentication)
+
+### Installation & Setup
+
+1.  **Clone the Repository:**
+
+    ```bash
+    git clone <your-repository-url>
+    cd downtime_tracker
+    ```
+
+2.  **Set Up Environment Variables:**
+    Create a file named `.env` in the root of the project and populate it with your environment-specific configurations. A template can be found in `config.py`.
+
+3.  **Install Dependencies:**
+    It is highly recommended to use a virtual environment.
+
+    ```bash
+    python -m venv venv
+    .\venv\Scripts\activate  # On Windows
+    # source venv/bin/activate  # On macOS/Linux
+
+    pip install -r requirements.txt
+    ```
+
+4.  **Run the Application:**
+    Execute the main application file. The server will start in debug mode with HTTPS enabled.
+
+    ```bash
+    python app.py
+    ```
+
+### ⚠️ IMPORTANT: Accessing the Application (HTTPS)
+
+The development server now runs exclusively over HTTPS to ensure a secure environment. This uses a temporary, self-signed SSL certificate.
+
+1.  **Access the URL:** Open your browser and navigate to **`https://localhost:5000`** or the network URL provided in the terminal (e.g., `https://192.168.x.x:5000`).
+
+2.  **Bypass Browser Warning:** Your browser will display a security warning like **"Your connection isn't private"** (`NET::ERR_CERT_AUTHORITY_INVALID`). This is expected and safe to bypass in a development environment.
+
+      * Click the **"Advanced"** button.
+      * Click the link that says **"Continue to localhost (unsafe)"**.
+
+Your browser will remember this exception, and you will be able to access the application securely for the rest of your session.
 
 -----
 
@@ -60,6 +113,7 @@ The application's hybrid data architecture connects to a **read-only ERP databas
 
 ### ✅ Security & Session Management
 
+  * **HTTPS Enabled by Default**: The development server runs over HTTPS with a self-signed certificate to ensure all traffic is encrypted.
   * **Active Directory Authentication**: Secure user login using existing corporate credentials.
   * **Granular Role-Based Access**: Differentiates between four distinct roles, restricting access to sensitive areas:
       * `DowntimeTracker_Admin`: Full administrative access to all modules.
@@ -87,6 +141,7 @@ The application's hybrid data architecture connects to a **read-only ERP databas
   * **Internationalization**: Flask-Babel.
   * **Frontend**: Jinja2, HTML, CSS, JavaScript (with Chart.js).
   * **Excel Export**: `openpyxl` for generating `.xlsx` reports.
+  * **Security**: `cryptography` for generating ad-hoc SSL certificates in development.
 
 ### Folder & File Structure
 
