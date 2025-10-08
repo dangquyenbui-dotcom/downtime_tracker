@@ -122,19 +122,24 @@ class ErpService:
         Fetches genuinely open purchase order lines, based on the provided JS logic.
         """
         db = get_erp_db()
+        # This logic mirrors the s_po Javascript logic:
+        # - Joins dtpur and dttpur on the PO number
+        # - Checks for open quantity (pu_quant > pu_recman)
+        # - Filters for purchase orders (tp_ordtype = 'p')
+        # - Filters for POs not marked as fully received (tp_recevd IS NULL)
         sql = """
-            SELECT 
-                pur.pu_ourcode AS "Part Number", 
+            SELECT
+                pur.pu_ourcode AS "Part Number",
                 SUM(ISNULL(pur.pu_quant, 0) - ISNULL(pur.pu_recman, 0)) AS "OpenPOQuantity"
-            FROM 
-                dtpur pur
-            INNER JOIN 
-                dttpur tp ON pur.pu_purnum = tp.tp_purnum
-            WHERE 
+            FROM
+                dtpur AS pur
+            INNER JOIN
+                dttpur AS tp ON pur.pu_purnum = tp.tp_purnum
+            WHERE
                 (ISNULL(pur.pu_quant, 0) - ISNULL(pur.pu_recman, 0)) > 0
                 AND tp.tp_ordtype = 'p'
                 AND tp.tp_recevd IS NULL
-            GROUP BY 
+            GROUP BY
                 pur.pu_ourcode;
         """
         return db.execute_query(sql)

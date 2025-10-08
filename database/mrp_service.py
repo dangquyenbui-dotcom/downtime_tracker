@@ -61,10 +61,12 @@ class MRPService:
         pos_by_part = {}
         for po in purchase_orders:
             part = po['Part Number']
-            if po.get('Open Quantity', 0) > 0:
+            # FIX: Use the correct key 'OpenPOQuantity' returned from the SQL query
+            open_qty = po.get('OpenPOQuantity', 0)
+            if open_qty > 0:
                 if part not in pos_by_part:
                     pos_by_part[part] = 0
-                pos_by_part[part] += po['Open Quantity']
+                pos_by_part[part] += open_qty
 
         # 3. Process each sales order
         mrp_results = []
