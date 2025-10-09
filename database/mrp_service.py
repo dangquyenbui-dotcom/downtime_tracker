@@ -1,4 +1,3 @@
-# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-5bb4163f1c166071f5c302dee6ed03e0344576eb/database/mrp_service.py
 """
 MRP (Material Requirements Planning) Service
 This service contains the core logic for calculating production suggestions.
@@ -72,9 +71,9 @@ class MRPService:
             ord_qty_curr_level = so.get('Ord Qty - Cur. Level', 0)
             net_qty = ord_qty_curr_level - on_hand_qty
             so['Net Qty'] = net_qty if net_qty > 0 else 0
-            so['On Hand Qty'] = on_hand_qty # Add this for the template
+            so['On Hand Qty'] = on_hand_qty
 
-        # 4. Identify shared components only among orders that have a net requirement
+        # Enhance component demand tracking
         component_demand = {}
         for so in sales_orders:
             if so.get('Net Qty', 0) > 0:
@@ -82,11 +81,17 @@ class MRPService:
                 if part_number in boms_by_parent:
                     for component in boms_by_parent[part_number]:
                         comp_part_num = component['Part Number']
-                        if comp_part_num not in component_demand:
-                            component_demand[comp_part_num] = set()
-                        component_demand[comp_part_num].add(so['SO'])
+                        qty_per_unit = component['Quantity'] * (1 + (component.get('Scrap %', 0) / 100))
+                        required_for_so = so['Net Qty'] * qty_per_unit
 
-        # 5. Sort Sales Orders by "Due to Ship" date for allocation logic
+                        if comp_part_num not in component_demand:
+                            component_demand[comp_part_num] = []
+                        component_demand[comp_part_num].append({
+                            'so': so['SO'],
+                            'required': required_for_so
+                        })
+
+        # 5. Sort Sales Orders by "Due to Ship" date
         max_date = datetime.max.date()
         def get_sort_date(so):
             due_date_str = so.get('Due to Ship')
@@ -98,10 +103,13 @@ class MRPService:
             return max_date
         sales_orders.sort(key=get_sort_date)
 
-        # 6. Initialize a mutable "live" inventory for allocation
+        # 6. Initialize a mutable "live" inventory (for approved stock only)
         live_component_inventory = {
             part: data.get('approved', 0) for part, data in component_inventory.items()
         }
+        
+        # Log allocations for tooltip
+        allocation_log = {}
 
         print(f"MRP RUN: Sorted {len(sales_orders)} SO lines. Starting allocation...")
 
@@ -112,46 +120,96 @@ class MRPService:
             gross_order_qty = so.get('Ord Qty - Cur. Level', 0)
             part_number = so['Part']
             
+            final_can_produce_qty = float('inf')
+            bottleneck = None
+            bom_components = boms_by_parent.get(part_number, [])
+
+            # --- PASS 1: DISCOVERY ---
+            if net_production_qty > 0 and bom_components:
+                for component in bom_components:
+                    comp_part_num = component['Part Number']
+                    qty_per_unit = component['Quantity'] * (1 + (component.get('Scrap %', 0) / 100))
+                    if qty_per_unit <= 0: continue
+
+                    initial_inv = component_inventory.get(comp_part_num, {'approved': 0, 'pending_qc': 0})
+                    inventory_before_this_so = live_component_inventory.get(comp_part_num, 0)
+                    pending_qc_qty = initial_inv.get('pending_qc', 0)
+                    open_po_qty = pos_by_part.get(comp_part_num, 0)
+                    
+                    available_for_allocation = inventory_before_this_so + pending_qc_qty + open_po_qty
+                    max_build_for_comp = available_for_allocation / qty_per_unit
+
+                    if max_build_for_comp < final_can_produce_qty:
+                        final_can_produce_qty = max_build_for_comp
+                        bottleneck = comp_part_num
+            elif not bom_components and net_production_qty > 0:
+                final_can_produce_qty = 0
+                bottleneck = "No BOM Found"
+
+            if final_can_produce_qty == float('inf'):
+                final_can_produce_qty = gross_order_qty
+
             so_result = {
                 'sales_order': so,
                 'components': [],
-                'bottleneck': None,
-                'can_produce_qty': float('inf'),
+                'bottleneck': bottleneck,
+                'can_produce_qty': final_can_produce_qty,
                 'shifts_required': 0
             }
 
-            if part_number in boms_by_parent:
-                for component in boms_by_parent[part_number]:
+            # --- PASS 2: ALLOCATION ---
+            if bom_components:
+                for component in bom_components:
                     comp_part_num = component['Part Number']
                     qty_per_unit = component['Quantity'] * (1 + (component.get('Scrap %', 0) / 100))
-                    
                     if qty_per_unit <= 0: continue
                     
-                    total_required_for_display = gross_order_qty * qty_per_unit
-                    total_required_for_allocation = net_production_qty * qty_per_unit
-
                     initial_inv = component_inventory.get(comp_part_num, {'approved': 0, 'pending_qc': 0})
+                    pending_qc_qty = initial_inv.get('pending_qc', 0)
                     open_po_qty = pos_by_part.get(comp_part_num, 0)
                     
                     inventory_before_this_so = live_component_inventory.get(comp_part_num, 0)
-                    available_for_allocation = inventory_before_this_so + open_po_qty
+                    available_for_allocation = inventory_before_this_so + pending_qc_qty + open_po_qty
+
+                    required_for_constrained_build = final_can_produce_qty * qty_per_unit
                     
                     if net_production_qty > 0:
-                        allocated_for_this_so = min(inventory_before_this_so, total_required_for_allocation)
+                        allocated_for_this_so = min(inventory_before_this_so, required_for_constrained_build)
+                        
+                        # --- BUG FIX: Safely update live inventory ---
                         live_component_inventory[comp_part_num] = inventory_before_this_so - allocated_for_this_so
-                        shortfall = max(0, total_required_for_allocation - available_for_allocation)
+
+                        if comp_part_num not in allocation_log:
+                            allocation_log[comp_part_num] = []
+                        if allocated_for_this_so > 0:
+                            allocation_log[comp_part_num].append({
+                                'so': so['SO'],
+                                'allocated': allocated_for_this_so
+                            })
                     else:
                         allocated_for_this_so = 0
-                        shortfall = 0
 
-                    all_demanding_sos = component_demand.get(comp_part_num, set())
-                    other_demanding_sos = sorted([str(s) for s in all_demanding_sos if s != so['SO']])
+                    total_original_need = net_production_qty * qty_per_unit
+                    shortfall = max(0, total_original_need - available_for_allocation)
+                    
+                    shared_with_so_details = []
+                    total_allocated_to_others = 0
+                    if comp_part_num in allocation_log:
+                        for allocation in allocation_log[comp_part_num]:
+                            if allocation['so'] != so['SO']:
+                                total_allocated_to_others += allocation['allocated']
+                        for allocation in allocation_log[comp_part_num]:
+                            if allocation['so'] != so['SO']:
+                                shared_with_so_details.append(f"  - SO {allocation['so']}: {allocation['allocated']:,.2f}")
+                        if total_allocated_to_others > 0:
+                            total_string = f"Total Allocated to Others: {total_allocated_to_others:,.2f}"
+                            shared_with_so_details.insert(0, total_string)
 
                     component_details = {
                         'part_number': comp_part_num,
                         'description': component['Description'],
-                        'shared_with_so': other_demanding_sos,
-                        'total_required': total_required_for_display,
+                        'shared_with_so': shared_with_so_details,
+                        'total_required': gross_order_qty * qty_per_unit,
                         'on_hand_initial': initial_inv['approved'],
                         'on_hand_pending_qc': initial_inv['pending_qc'],
                         'inventory_before_this_so': inventory_before_this_so,
@@ -161,19 +219,6 @@ class MRPService:
                         'shortfall': shortfall
                     }
                     so_result['components'].append(component_details)
-
-                    if net_production_qty > 0:
-                        max_build_for_comp = available_for_allocation / qty_per_unit
-                        if max_build_for_comp < so_result['can_produce_qty']:
-                            so_result['can_produce_qty'] = max_build_for_comp
-                            so_result['bottleneck'] = comp_part_num
-            else:
-                so_result['bottleneck'] = "No BOM Found"
-                if net_production_qty > 0:
-                    so_result['can_produce_qty'] = 0
-
-            if so_result['can_produce_qty'] == float('inf'):
-                so_result['can_produce_qty'] = gross_order_qty
 
             if capacities:
                 line_capacity = next(iter(capacities.values()), 0)
