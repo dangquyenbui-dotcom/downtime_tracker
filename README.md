@@ -1,9 +1,3 @@
-Of course. It is an excellent idea to bring the project's master document up to date. We have made significant progress, and the `README.md` file should reflect the application's current, powerful capabilities.
-
-I have written a new, comprehensive `README.md` from the ground up. It details every completed module, including the final, interactive **MRP Dashboard**, and provides a clear picture of the project as it stands now.
-
-Here is the complete and updated `README.md` file:
-
 # Production Portal: Downtime Tracker & MRP Scheduler
 
 ## Overview
@@ -12,7 +6,7 @@ A robust, enterprise-ready web application designed for manufacturing environmen
 
 The system's hybrid data architecture connects to a **read-only ERP database** for live production and material data while storing all user-generated data—such as downtime events, scheduling projections, and production capacity—in a separate, fully-controlled local SQL Server database (`ProductionDB`).
 
-**Current Version:** 2.5.0 (MRP Dashboard Complete)
+**Current Version:** 2.5.1 (MRP Dashboard Complete with advanced logic)
 **Status:** **All core modules are complete and operational.**
 
 -----
@@ -66,14 +60,26 @@ The system's hybrid data architecture connects to a **read-only ERP database** f
 
 A dynamic, filterable dashboard that serves as the central planning tool. It analyzes all open sales orders, provides intelligent production suggestions based on material availability, and prioritizes orders by their "Due to Ship" date.
 
+#### Core Logic & Business Rules:
+
+  * **Sequential Allocation by Date:** The MRP engine first sorts all open Sales Orders by their "Due to Ship" date, from earliest to latest. It then processes them one by one, allocating available raw material inventory to the highest-priority orders first.
+  * **Inventory Availability:** The "Can Produce" calculation is based on the sum of three key inventory figures:
+    1.  **Approved, On-Hand Inventory:** The main pool of unrestricted materials.
+    2.  **Pending QC Inventory:** Materials that have been received but are awaiting quality inspection. These are included for planning purposes to provide a more realistic view of upcoming availability.
+    3.  **Open Purchase Order Quantity:** Materials that are on order but not yet received.
+  * **Two-Pass Calculation per Sales Order:** To ensure accuracy, the engine uses a two-pass system for each Sales Order:
+    1.  **Pass 1 (Discovery):** It first loops through all required components to find the single greatest constraint (the "bottleneck") and determines the absolute maximum quantity of the finished good that can be produced.
+    2.  **Pass 2 (Allocation):** With the true "Can Produce" quantity established, it loops through the components a second time, allocating only the precise amount of each material needed to produce the constrained quantity. This prevents over-allocation of non-bottleneck materials and frees them up for lower-priority orders.
+  * **Committed Inventory Exclusion:** Inventory that has already been "Issued to Job" is considered Work-in-Progress (WIP) and is **excluded** from all MRP calculations to prevent double-promising materials.
+
+#### Features:
+
   * **Holistic View:** Displays **all** open sales orders for data consistency and validation against the Scheduling page.
   * **Intelligent Filtering:** Instantly narrow down orders by **Business Unit (BU), Customer, Due to Ship (Month/Year), and Production Status** (Full Production, Partial, Critical, Ready to Ship).
-  * **Prioritized Allocation:** The MRP engine processes orders chronologically by their "Due to Ship" date, allocating scarce materials to the most urgent orders first.
   * **Smart Statuses:**
       * **Ready to Ship:** Orders that can be fulfilled entirely from existing finished goods inventory are clearly marked and do not have an expandable detail view, simplifying the interface.
       * **Full Production / Partial / Critical:** Statuses are determined by comparing the "Can Produce" quantity against the required amount.
-  * **Shared Component Identification:** A 🔗 icon and detailed tooltip automatically appear next to any raw material that is required by more than one open sales order, instantly highlighting potential cross-order conflicts.
-  * **Live Inventory Simulation:** The component detail view shows the inventory available *before* the current order's demand was considered and shows the exact amount `Allocated`, providing a clear picture of how the live inventory pool is being depleted.
+  * **Enhanced Tooltips:** Hovering over the 🔗 icon next to a component reveals a detailed tooltip showing the **total quantity allocated to prior orders** and a line-by-line breakdown of which specific Sales Orders consumed that inventory.
   * **Excel Export:** Download the currently filtered and sorted view of the MRP data, including all component details, to an XLSX file.
 
 ### ✅ Production Scheduling Module
@@ -120,7 +126,6 @@ A comprehensive, role-restricted area for managing all aspects of the applicatio
 |
 ├── /database/
 │   ├── erp_connection.py   # Handles read-only connection to the ERP
-│   ├── erp_service.py      # Contains all ERP query functions
 │   ├── mrp_service.py      # Core MRP calculation engine
 │   ├── capacity.py         # Manages ProductionCapacity table
 │   └── ...                 # Other local database modules (downtimes, users, etc.)

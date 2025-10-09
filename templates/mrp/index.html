@@ -320,8 +320,8 @@
                     <tr class="{{ 'bottleneck-row' if comp.part_number == result.bottleneck else '' }}">
                         <td>
                             {% if comp.shared_with_so %}
-                                {% set so_list = comp.shared_with_so | join(', ') %}
-                                <span class="shared-icon" title="This component is shared with other SO: {{ so_list }}">🔗</span>
+                                {% set so_list = comp.shared_with_so | join('\n') %}
+                                <span class="shared-icon" title="{{ so_list }}">🔗</span>
                             {% endif %}
                             {{ comp.part_number }}
                         </td>
