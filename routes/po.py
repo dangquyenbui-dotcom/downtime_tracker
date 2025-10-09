@@ -1,4 +1,4 @@
-# dangquyenbui-dotcom/downtime_tracker/downtime_tracker-953d9e6915ad7fa465db9a8f87b8a56d713b0537/routes/po.py
+# dangquyenbui-dotcom/production_portal_dev/production_portal_DEV-295c331ed3402285b3968a9eee927cfdf1c23943/routes/po.py
 """
 Purchase Order (PO) Viewer routes.
 """
@@ -22,7 +22,7 @@ def view_pos():
         return redirect(url_for('main.login'))
 
     try:
-        purchase_orders = erp_service.get_purchase_order_data()
+        purchase_orders = erp_service.get_detailed_purchase_order_data()
     except Exception as e:
         flash(f'Error fetching PO data from ERP: {e}', 'error')
         purchase_orders = []
