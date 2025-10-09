@@ -1,45 +1,112 @@
 // static/js/mrp.js
 document.addEventListener('DOMContentLoaded', function() {
     initializeFilters();
+    restoreFilters(); // Restore filters before attaching listeners or filtering
     attachAllEventListeners();
-    filterMRP(); // Run initial filter to update counts
+    
+    // Set and apply initial sort by Sales Order, ascending
+    const soHeader = document.querySelector('.sortable[data-column-id="SO"]');
+    if (soHeader) {
+        const columnIndex = Array.from(soHeader.parentElement.children).indexOf(soHeader);
+        sortState.column = 'SO';
+        sortState.direction = 'asc';
+        sortState.columnIndex = columnIndex;
+        sortState.columnType = 'string';
+        sortMRP();
+        updateSortIndicators();
+    }
+    
+    filterMRP(); // Run initial filter to apply restored filters and sort
+    
+    // Check for refresh flag
+    if (sessionStorage.getItem('mrpWasRefreshed')) {
+        dtUtils.showAlert('Data refreshed successfully!', 'success');
+        sessionStorage.removeItem('mrpWasRefreshed');
+    }
 });
 
+let sortState = {
+    column: null,
+    direction: 'none', // 'asc', 'desc'
+    columnIndex: -1,
+    columnType: 'string'
+};
+
 function attachAllEventListeners() {
-    // Accordion toggles
-    document.querySelectorAll('.so-header').forEach(header => {
-        header.addEventListener('click', function() {
-            this.classList.toggle('expanded');
-            const details = document.getElementById(this.dataset.target);
-            if (details) {
-                details.style.display === 'block' ? slideUp(details) : slideDown(details);
-            }
-        });
-    });
+    // Set up the single, delegated listener for the accordion
+    attachAccordionEventListeners();
 
     // Filter changes
-    document.getElementById('facilityFilter').addEventListener('change', filterMRP);
     document.getElementById('buFilter').addEventListener('change', filterMRP);
     document.getElementById('customerFilter').addEventListener('change', filterMRP);
+    document.getElementById('dueShipFilter').addEventListener('change', filterMRP);
     document.getElementById('statusFilter').addEventListener('change', filterMRP);
     document.getElementById('resetBtn').addEventListener('click', resetFilters);
+    document.getElementById('exportBtn').addEventListener('click', exportVisibleDataToXlsx);
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+        saveFilters();
+        sessionStorage.setItem('mrpWasRefreshed', 'true');
+        window.location.reload();
+    });
+    
+    // Sort clicks
+    document.querySelectorAll('.so-header-static .sortable').forEach(header => {
+        header.addEventListener('click', handleSortClick);
+    });
 }
+
+function attachAccordionEventListeners() {
+    const accordion = document.querySelector('.mrp-accordion');
+    if (!accordion) return;
+
+    // Event Delegation: Attach one listener to the parent container.
+    accordion.addEventListener('click', function(event) {
+        const header = event.target.closest('.so-header:not(.no-expand)');
+        
+        // If a valid, expandable header was clicked...
+        if (header) {
+            header.classList.toggle('expanded');
+            const details = document.getElementById(header.dataset.target);
+            if (details) {
+                // Toggle visibility using the slide functions
+                if (details.style.display === 'block') {
+                    slideUp(details);
+                } else {
+                    slideDown(details);
+                }
+            }
+        }
+    });
+}
+
 
 function initializeFilters() {
     const headers = document.querySelectorAll('.so-header');
-    const facilityOptions = new Set();
     const buOptions = new Set();
     const customerOptions = new Set();
+    const dueShipOptions = new Set();
 
     headers.forEach(header => {
-        facilityOptions.add(header.dataset.facility);
         buOptions.add(header.dataset.bu);
         customerOptions.add(header.dataset.customer);
+        
+        const dueDate = header.dataset.dueShip;
+        if (dueDate && dueDate.includes('/')) {
+            const parts = dueDate.split('/'); // MM/DD/YYYY
+            const monthYear = `${parts[0].padStart(2, '0')}/${parts[2]}`;
+            dueShipOptions.add(monthYear);
+        }
     });
 
-    populateSelect('facilityFilter', [...facilityOptions].sort());
     populateSelect('buFilter', [...buOptions].sort());
     populateSelect('customerFilter', [...customerOptions].sort());
+
+    const sortedDueDates = [...dueShipOptions].sort((a, b) => {
+        const [aMonth, aYear] = a.split('/');
+        const [bMonth, bYear] = b.split('/');
+        return new Date(aYear, aMonth - 1) - new Date(bYear, bMonth - 1);
+    });
+    populateSelect('dueShipFilter', sortedDueDates);
 }
 
 function populateSelect(selectId, options) {
@@ -54,53 +121,254 @@ function populateSelect(selectId, options) {
     });
 }
 
+function saveFilters() {
+    const filters = {
+        bu: document.getElementById('buFilter').value,
+        customer: document.getElementById('customerFilter').value,
+        dueShip: document.getElementById('dueShipFilter').value,
+        status: document.getElementById('statusFilter').value,
+    };
+    sessionStorage.setItem('mrpFilters', JSON.stringify(filters));
+}
+
+function restoreFilters() {
+    const savedFilters = JSON.parse(sessionStorage.getItem('mrpFilters'));
+    if (savedFilters) {
+        document.getElementById('buFilter').value = savedFilters.bu || '';
+        document.getElementById('customerFilter').value = savedFilters.customer || '';
+        document.getElementById('dueShipFilter').value = savedFilters.dueShip || '';
+        document.getElementById('statusFilter').value = savedFilters.status || '';
+    }
+}
+
 function filterMRP() {
-    const facilityFilter = document.getElementById('facilityFilter').value;
     const buFilter = document.getElementById('buFilter').value;
     const customerFilter = document.getElementById('customerFilter').value;
+    const dueShipFilter = document.getElementById('dueShipFilter').value;
     const statusFilter = document.getElementById('statusFilter').value;
 
     let visibleCount = 0;
     let okCount = 0;
     let partialCount = 0;
     let criticalCount = 0;
+    let readyToShipCount = 0;
 
     document.querySelectorAll('.so-header').forEach(header => {
         let show = true;
-        if (facilityFilter && header.dataset.facility !== facilityFilter) show = false;
         if (buFilter && header.dataset.bu !== buFilter) show = false;
         if (customerFilter && header.dataset.customer !== customerFilter) show = false;
-        if (statusFilter && header.dataset.status !== statusFilter) show = false;
+        
+        if (dueShipFilter) {
+            const dueDate = header.dataset.dueShip;
+            if (!dueDate || !dueDate.includes('/')) {
+                show = false;
+            } else {
+                const parts = dueDate.split('/');
+                const monthYear = `${parts[0].padStart(2, '0')}/${parts[2]}`;
+                if (monthYear !== dueShipFilter) {
+                    show = false;
+                }
+            }
+        }
+
+        const netQty = parseFloat(header.dataset.netQty);
+        if (statusFilter) {
+            if (statusFilter === 'ready-to-ship') {
+                if (netQty > 0) show = false;
+            } else {
+                if (netQty <= 0) show = false; // Exclude ready-to-ship from other statuses
+                if (header.dataset.status !== statusFilter) show = false;
+            }
+        }
 
         header.classList.toggle('hidden-row', !show);
         
         if(show) {
             visibleCount++;
-            if (header.dataset.status === 'ok') okCount++;
-            if (header.dataset.status === 'partial') partialCount++;
-            if (header.dataset.status === 'critical') criticalCount++;
+            if (netQty <= 0) {
+                readyToShipCount++;
+            } else {
+                if (header.dataset.status === 'ok') okCount++;
+                if (header.dataset.status === 'partial') partialCount++;
+                if (header.dataset.status === 'critical') criticalCount++;
+            }
         }
     });
 
-    updateSummaryCards(visibleCount, okCount, partialCount, criticalCount);
+    updateSummaryCards(visibleCount, readyToShipCount, okCount, partialCount, criticalCount);
+    saveFilters();
+    sortMRP();
 }
 
 function resetFilters() {
-    document.getElementById('facilityFilter').value = '';
     document.getElementById('buFilter').value = '';
     document.getElementById('customerFilter').value = '';
+    document.getElementById('dueShipFilter').value = '';
     document.getElementById('statusFilter').value = '';
+    sessionStorage.removeItem('mrpFilters');
     filterMRP();
 }
 
-function updateSummaryCards(total, ok, partial, critical) {
+function updateSummaryCards(total, readyToShip, ok, partial, critical) {
     document.getElementById('total-orders').textContent = total;
+    document.getElementById('ready-to-ship-count').textContent = readyToShip;
     document.getElementById('full-production').textContent = ok;
     document.getElementById('partial-production').textContent = partial;
     document.getElementById('critical-shortage').textContent = critical;
 }
 
-/* Simple slide-down animation */
+function handleSortClick(e) {
+    const header = e.currentTarget;
+    const columnId = header.dataset.columnId;
+
+    if (sortState.column === columnId) {
+        sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortState.column = columnId;
+        sortState.direction = 'asc';
+    }
+    sortState.columnIndex = Array.from(header.parentElement.children).indexOf(header);
+    sortState.columnType = header.dataset.columnType;
+    
+    sortMRP();
+    updateSortIndicators();
+}
+
+function updateSortIndicators() {
+    document.querySelectorAll('.so-header-static .sortable').forEach(header => {
+        const indicator = header.querySelector('.sort-indicator');
+        header.classList.remove('sorted-asc', 'sorted-desc');
+        indicator.textContent = '';
+        if (header.dataset.columnId === sortState.column) {
+            if (sortState.direction === 'asc') {
+                header.classList.add('sorted-asc');
+                indicator.textContent = '▲';
+            } else {
+                header.classList.add('sorted-desc');
+                indicator.textContent = '▼';
+            }
+        }
+    });
+}
+
+function sortMRP() {
+    const accordion = document.querySelector('.mrp-accordion');
+    const orderGroups = Array.from(accordion.querySelectorAll('.so-header')).map(header => {
+        const details = document.getElementById(header.dataset.target);
+        return { header, details: details || null };
+    });
+
+    const getSortValue = (header) => {
+        if (sortState.columnIndex < 0) return null;
+        const infoDiv = header.children[sortState.columnIndex];
+        const text = infoDiv ? infoDiv.querySelector('strong, div').textContent.trim() : '';
+        return sortState.columnType === 'numeric' ? (parseFloat(text.replace(/,/g, '')) || 0) : text.toLowerCase();
+    };
+
+    orderGroups.sort((a, b) => {
+        const valA = getSortValue(a.header);
+        const valB = getSortValue(b.header);
+        let comparison = 0;
+        if (valA > valB) comparison = 1;
+        else if (valA < valB) comparison = -1;
+        return sortState.direction === 'asc' ? comparison : -comparison;
+    });
+
+    orderGroups.forEach(group => {
+        accordion.appendChild(group.header);
+        if (group.details) {
+            accordion.appendChild(group.details);
+        }
+    });
+}
+
+function exportVisibleDataToXlsx() {
+    const exportBtn = document.getElementById('exportBtn');
+    exportBtn.disabled = true;
+    exportBtn.textContent = '📥 Generating...';
+
+    const headers = [
+        'SO', 'Finished Good', 'SO Required', 'SO Can Produce', 'SO Bottleneck',
+        'Component Part', 'Component Description', 'Total Required', 'Initial On-Hand',
+        'Avail. Before SO', 'Allocated', 'Open PO Qty', 'Shortfall'
+    ];
+
+    const rows = [];
+    document.querySelectorAll('.mrp-accordion .so-header').forEach(header => {
+        if (header.classList.contains('hidden-row')) {
+            return;
+        }
+
+        const soData = {
+            so: header.querySelector('.so-info:nth-child(1) strong').textContent.trim(),
+            fg: header.querySelector('.so-info:nth-child(2) strong').textContent.trim(),
+            required: header.querySelector('.so-info:nth-child(3) strong').textContent.trim(),
+            canProduce: header.querySelector('.so-info:nth-child(4) strong').textContent.trim(),
+            bottleneck: header.querySelector('.so-info:nth-child(5) div').textContent.trim(),
+        };
+
+        const detailsId = header.dataset.target;
+        if (detailsId) {
+            const detailsTable = document.getElementById(detailsId);
+            if (detailsTable) {
+                detailsTable.querySelectorAll('tbody tr').forEach(compRow => {
+                    const rowData = [
+                        soData.so, soData.fg, soData.required, soData.canProduce, soData.bottleneck,
+                        compRow.cells[0].textContent.trim().replace('🔗', '').trim(),
+                        compRow.cells[1].textContent.trim(), compRow.cells[2].textContent.trim(),
+                        compRow.cells[3].textContent.trim(), compRow.cells[4].textContent.trim(),
+                        compRow.cells[5].textContent.trim(), compRow.cells[6].textContent.trim(),
+                        compRow.cells[7].textContent.trim(),
+                    ];
+                    rows.push(rowData);
+                });
+            }
+        } else {
+             rows.push([soData.so, soData.fg, soData.required, soData.canProduce, soData.bottleneck, '', '', '', '', '', '', '', '']);
+        }
+    });
+
+    if (rows.length === 0) {
+        dtUtils.showAlert('No data to export.', 'info');
+        exportBtn.disabled = false;
+        exportBtn.textContent = '📥 Download XLSX';
+        return;
+    }
+    
+    fetch('/mrp/api/export-xlsx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ headers, rows })
+    })
+    .then(response => {
+        if (!response.ok) { throw new Error('Network response was not ok.'); }
+        const disposition = response.headers.get('Content-Disposition');
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+        const filename = (matches != null && matches[1]) ? matches[1].replace(/['"]/g, '') : 'mrp_export.xlsx';
+        return Promise.all([response.blob(), filename]);
+    })
+    .then(([blob, filename]) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        exportBtn.disabled = false;
+        exportBtn.textContent = '📥 Download XLSX';
+    })
+    .catch(error => {
+        console.error('Export error:', error);
+        dtUtils.showAlert('An error occurred during the export.', 'error');
+        exportBtn.disabled = false;
+        exportBtn.textContent = '📥 Download XLSX';
+    });
+}
+
+/* Simple slide-down/up animations */
 function slideDown(element) {
     element.style.display = 'block';
     let height = element.scrollHeight + 'px';
@@ -115,7 +383,6 @@ function slideDown(element) {
     }, 300);
 }
 
-/* Simple slide-up animation */
 function slideUp(element) {
     element.style.height = element.scrollHeight + 'px';
     setTimeout(() => {

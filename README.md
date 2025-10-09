@@ -12,7 +12,7 @@ A robust, enterprise-ready web application designed for manufacturing environmen
 
 The system's hybrid data architecture connects to a **read-only ERP database** for live production and material data while storing all user-generated data—such as downtime events, scheduling projections, and production capacity—in a separate, fully-controlled local SQL Server database (`ProductionDB`).
 
-**Current Version:** 2.4.0 (MRP Dashboard Implemented)
+**Current Version:** 2.5.0 (MRP Dashboard Complete)
 **Status:** **All core modules are complete and operational.**
 
 -----
@@ -31,7 +31,7 @@ The system's hybrid data architecture connects to a **read-only ERP database** f
 
     ```bash
     git clone <your-repository-url>
-    cd downtime_tracker
+    cd production_portal_dev
     ```
 
 2.  **Set Up Environment Variables:**
@@ -64,21 +64,25 @@ The system's hybrid data architecture connects to a **read-only ERP database** f
 
 ### ✅ Material Requirements Planning (MRP) Dashboard
 
-A dynamic, filterable dashboard that serves as the central planning tool. It analyzes all open sales orders and provides intelligent, data-driven production suggestions.
+A dynamic, filterable dashboard that serves as the central planning tool. It analyzes all open sales orders, provides intelligent production suggestions based on material availability, and prioritizes orders by their "Due to Ship" date.
 
-  * **Filterable Interface:** Instantly narrow down sales orders by **Facility, Business Unit, Customer, and Production Status** (Full, Partial, Critical).
-  * **Dynamic Summary Cards:** Get a real-time overview of the filtered data, including the total number of orders and their production feasibility.
-  * **Collapsible Accordion View:** Each sales order is presented as a color-coded summary line for at-a-glance status checks. Clicking any order expands it to show a detailed material breakdown.
-  * **Bottleneck Identification:** The system automatically highlights the specific raw material that is constraining production for each order.
-  * **"Can Produce" Suggestions:** For each order, the dashboard displays the maximum quantity of a finished good that can be produced based on material availability.
+  * **Holistic View:** Displays **all** open sales orders for data consistency and validation against the Scheduling page.
+  * **Intelligent Filtering:** Instantly narrow down orders by **Business Unit (BU), Customer, Due to Ship (Month/Year), and Production Status** (Full Production, Partial, Critical, Ready to Ship).
+  * **Prioritized Allocation:** The MRP engine processes orders chronologically by their "Due to Ship" date, allocating scarce materials to the most urgent orders first.
+  * **Smart Statuses:**
+      * **Ready to Ship:** Orders that can be fulfilled entirely from existing finished goods inventory are clearly marked and do not have an expandable detail view, simplifying the interface.
+      * **Full Production / Partial / Critical:** Statuses are determined by comparing the "Can Produce" quantity against the required amount.
+  * **Shared Component Identification:** A 🔗 icon and detailed tooltip automatically appear next to any raw material that is required by more than one open sales order, instantly highlighting potential cross-order conflicts.
+  * **Live Inventory Simulation:** The component detail view shows the inventory available *before* the current order's demand was considered and shows the exact amount `Allocated`, providing a clear picture of how the live inventory pool is being depleted.
+  * **Excel Export:** Download the currently filtered and sorted view of the MRP data, including all component details, to an XLSX file.
+
+### ✅ Production Scheduling Module
+
+An Excel-like grid that displays all open sales orders from the ERP, allowing planners to input and save financial projections for different risk scenarios.
 
 ### ✅ Downtime Tracking Module
 
 A tablet-optimized interface for quick and easy downtime entry on the factory floor, featuring ERP job integration and a real-time list of the day's entries.
-
-### ✅ Production Scheduling Module
-
-An Excel-like grid that displays open sales orders from the ERP, allowing planners to input and save financial projections for "No/Low Risk" and "High Risk" production scenarios.
 
 ### ✅ BOM & PO Viewers
 
@@ -110,15 +114,16 @@ A comprehensive, role-restricted area for managing all aspects of the applicatio
 ### Project Structure (Highlights)
 
 ```
-/downtime_tracker/
+/production_portal_dev/
 |
 ├── app.py                  # Main application factory
 |
 ├── /database/
-│   ├── erp_connection.py   # Contains all ERP query functions
+│   ├── erp_connection.py   # Handles read-only connection to the ERP
+│   ├── erp_service.py      # Contains all ERP query functions
 │   ├── mrp_service.py      # Core MRP calculation engine
 │   ├── capacity.py         # Manages ProductionCapacity table
-│   └── ...                 # Other database modules
+│   └── ...                 # Other local database modules (downtimes, users, etc.)
 |
 ├── /routes/
 │   ├── mrp.py              # Routes for the MRP Dashboard page
@@ -131,7 +136,8 @@ A comprehensive, role-restricted area for managing all aspects of the applicatio
 ├── /static/
 │   ├── /css/
 │   └── /js/
-│       └── mrp.js          # JavaScript for the MRP Dashboard
+│       ├── mrp.js          # JavaScript for the MRP Dashboard
+│       └── scheduling.js   # JavaScript for the Scheduling page
 |
 ├── /templates/
 │   ├── dashboard.html
