@@ -45,7 +45,7 @@
     .filter-select { min-width: 160px; }
     .summary-grid {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(6, 1fr);
         gap: 20px;
         margin-bottom: 20px;
     }
@@ -72,6 +72,7 @@
     .summary-card.partial .summary-value { color: var(--accent-orange); }
     .summary-card.critical .summary-value { color: var(--accent-red); }
     .summary-card.blue .summary-value { color: var(--accent-blue); }
+    .summary-card.purple .summary-value { color: var(--accent-purple); }
 
     /* --- ACCORDION --- */
     .so-header-static {
@@ -136,9 +137,12 @@
     }
     .so-header:hover:not(.no-expand) { background-color: var(--bg-hover); }
     .so-header.hidden-row { display: none; }
+    .so-header.status-ready-to-ship { border-left: 5px solid var(--accent-green); }
+    .so-header.status-pending-qc { border-left: 5px solid var(--accent-purple); }
     .so-header.status-ok { border-left: 5px solid var(--accent-green); }
     .so-header.status-partial { border-left: 5px solid var(--accent-orange); }
     .so-header.status-critical { border-left: 5px solid var(--accent-red); }
+
     .so-info { font-size: 14px; }
     .so-info label { font-size: 11px; color: var(--text-tertiary); display: block; text-transform: uppercase; }
     .so-info strong { color: var(--text-primary); font-size: 1.1em; }
@@ -151,6 +155,15 @@
     .ready-to-ship {
         background: rgba(104, 211, 145, 0.2);
         color: var(--accent-green);
+        padding: 8px 12px;
+        border-radius: 5px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 13px;
+    }
+    .pending-qc-tag {
+        background: rgba(183, 148, 244, 0.2);
+        color: var(--accent-purple);
         padding: 8px 12px;
         border-radius: 5px;
         text-align: center;
@@ -207,10 +220,11 @@
             <label for="statusFilter">Status:</label>
             <select id="statusFilter" class="form-select filter-select">
                 <option value="">All</option>
+                <option value="ready-to-ship">Ready to Ship</option>
+                <option value="pending-qc">Pending QC</option>
                 <option value="ok">Full Production</option>
                 <option value="partial">Partial Production</option>
                 <option value="critical">Critical Shortage</option>
-                <option value="ready-to-ship">Ready to Ship</option>
             </select>
         </div>
         <button class="btn btn-secondary" id="resetBtn">Reset Filters</button>
@@ -229,6 +243,10 @@
     <div class="summary-card blue">
         <div class="summary-value" id="ready-to-ship-count">0</div>
         <div class="summary-label">Ready to Ship</div>
+    </div>
+    <div class="summary-card purple">
+        <div class="summary-value" id="pending-qc-count">0</div>
+        <div class="summary-label">Pending QC</div>
     </div>
     <div class="summary-card ok">
         <div class="summary-value" id="full-production">0</div>
@@ -265,42 +283,40 @@
 
 <div class="mrp-accordion">
     {% for result in mrp_results %}
-        {% set can_produce = result.can_produce_qty %}
-        {% set display_required = result.sales_order['Ord Qty - Cur. Level'] or result.sales_order['Net Qty'] %}
-        {% set status = 'ok' if can_produce >= display_required else ('partial' if can_produce > 0 else 'critical') %}
-        
-        {# Create a unique ID for each line item using SO and Part #}
-        {% set unique_id = result.sales_order.SO ~ '-' ~ result.sales_order.Part %}
+        {% set so = result.sales_order %}
+        {% set status = result.status %}
+        {% set has_components = result.components|length > 0 %}
+        {% set expand_class = 'no-expand' if status in ['ready-to-ship', 'pending-qc'] or not has_components else '' %}
+        {% set unique_id = so.SO ~ '-' ~ so.Part|replace('.', '-') %}
 
-        <div class="so-header status-{{ status }} {{ 'no-expand' if result.sales_order['Net Qty'] <= 0 else '' }}"
+        <div class="so-header status-{{ status }} {{ expand_class }}"
              data-target="so-{{ unique_id }}"
-             data-facility="{{ result.sales_order.Facility }}"
-             data-bu="{{ result.sales_order.BU }}"
-             data-customer="{{ result.sales_order['Customer Name'] }}"
-             data-due-ship="{{ result.sales_order['Due to Ship'] or '' }}"
+             data-facility="{{ so.Facility }}"
+             data-bu="{{ so.BU }}"
+             data-customer="{{ so['Customer Name'] }}"
+             data-due-ship="{{ so['Due to Ship'] or '' }}"
              data-status="{{ status }}"
-             data-net-qty="{{ result.sales_order['Net Qty'] }}">
+             data-net-qty="{{ so['Net Qty'] }}">
             
-            {% if result.sales_order['Net Qty'] <= 0 %}
-                <div class="so-info"><strong>{{ result.sales_order.SO }}</strong></div>
-                <div class="so-info"><strong>{{ result.sales_order.Part }}</strong></div>
-                <div class="so-info numeric"><strong>{{ "{:,.0f}".format(display_required) }}</strong></div>
-                <div class="so-info numeric"><strong style="font-size: 1.3em;">{{ "{:,.0f}".format(can_produce) }}</strong></div>
-                <div class="so-info">
-                    <div class="ready-to-ship">Ready to Ship (On-Hand: {{ "{:,.0f}".format(result.sales_order['On Hand Qty']) }})</div>
-                </div>
-                <div class="expand-icon" style="visibility: hidden;">›</div>
-            {% else %}
-                <div class="so-info"><strong>{{ result.sales_order.SO }}</strong></div>
-                <div class="so-info"><strong>{{ result.sales_order.Part }}</strong></div>
-                <div class="so-info numeric"><strong>{{ "{:,.0f}".format(display_required) }}</strong></div>
-                <div class="so-info numeric"><strong style="font-size: 1.3em;">{{ "{:,.0f}".format(can_produce) }}</strong></div>
-                <div class="so-info">
+            <div class="so-info"><strong>{{ so.SO }}</strong></div>
+            <div class="so-info"><strong>{{ so.Part }}</strong></div>
+            <div class="so-info numeric"><strong>{{ "{:,.0f}".format(so['Ord Qty - Cur. Level']) }}</strong></div>
+            <div class="so-info numeric"><strong style="font-size: 1.3em;">{{ "{:,.0f}".format(result.can_produce_qty) }}</strong></div>
+            
+            <div class="so-info">
+                {% if status == 'ready-to-ship' %}
+                    <div class="ready-to-ship">Ready to Ship (On-Hand: {{ "{:,.0f}".format(so['On Hand Qty Approved']) }})</div>
+                {% elif status == 'pending-qc' %}
+                    <div class="pending-qc-tag">Pending QC (Approved: {{ "{:,.0f}".format(so['On Hand Qty Approved']) }}, QC: {{ "{:,.0f}".format(so['On Hand Qty Pending QC']) }})</div>
+                {% else %}
                     <div class="bottleneck-tag {{ 'bottleneck' if status != 'ok' else 'no-bottleneck' }}">{{ result.bottleneck or 'None' }}</div>
-                </div>
-                <div class="expand-icon">›</div>
-            {% endif %}
+                {% endif %}
+            </div>
+
+            <div class="expand-icon" style="{{ 'visibility: hidden;' if expand_class else '' }}">›</div>
         </div>
+        
+        {% if has_components %}
         <div class="component-details" id="so-{{ unique_id }}">
             <table class="component-table">
                 <thead>
@@ -339,6 +355,7 @@
                 </tbody>
             </table>
         </div>
+        {% endif %}
     {% else %}
     <div class="empty-state" style="padding: 40px; background: var(--bg-secondary); border-radius: 10px;">
         <div class="empty-state-icon">✅</div>

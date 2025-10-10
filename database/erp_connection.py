@@ -1,4 +1,4 @@
-# dangquyenbui-dotcom/production_portal_dev/production_portal_DEV-295c331ed3402285b3968a9eee927cfdf1c23943/database/erp_connection.py
+# dangquyenbui-dotcom/production_portal_dev/production_portal_DEV-35c5b2d7d65c0b0de1b2129d9ecd46a5ad103507/database/erp_connection.py
 """
 Dedicated ERP Database Connection Service.
 This is separate from the main application's database connection.
@@ -369,6 +369,14 @@ class ErpService:
         sql = """
             SELECT
                 p.pr_codenum AS PartNumber,
+                SUM(CASE 
+                    WHEN (f.fi_qc IS NULL OR f.fi_qc <> 'Pending') THEN f.fi_balance 
+                    ELSE 0 
+                END) AS on_hand_approved,
+                SUM(CASE 
+                    WHEN f.fi_qc = 'Pending' THEN f.fi_balance 
+                    ELSE 0 
+                END) AS on_hand_pending_qc,
                 SUM(f.fi_balance) AS TotalOnHand
             FROM dtfifo f
             JOIN dmprod p ON f.fi_prid = p.pr_id

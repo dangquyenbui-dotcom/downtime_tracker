@@ -1,3 +1,4 @@
+# dangquyenbui-dotcom/production_portal_dev/production_portal_DEV-35c5b2d7d65c0b0de1b2129d9ecd46a5ad103507/database/mrp_service.py
 """
 MRP (Material Requirements Planning) Service
 This service contains the core logic for calculating production suggestions.
@@ -46,7 +47,13 @@ class MRPService:
         capacities = {c['line_id']: c['capacity_per_shift'] for c in capacity_db.get_all()}
 
         # 2. Pre-process and create lookups
-        fg_inventory_map = {item['PartNumber']: item['TotalOnHand'] for item in finished_good_inventory_data}
+        fg_inventory_map = {
+            item['PartNumber']: {
+                'approved': item.get('on_hand_approved', 0),
+                'pending_qc': item.get('on_hand_pending_qc', 0),
+                'total': item.get('TotalOnHand', 0)
+            } for item in finished_good_inventory_data
+        }
         
         boms_by_parent = {}
         for item in boms:
@@ -67,11 +74,19 @@ class MRPService:
         # 3. First, calculate Net Qty for all SOs
         for so in sales_orders:
             part_number = so['Part']
-            on_hand_qty = fg_inventory_map.get(part_number, 0)
+            fg_inv = fg_inventory_map.get(part_number, {'approved': 0, 'pending_qc': 0, 'total': 0})
+            
+            approved_on_hand = fg_inv.get('approved', 0)
             ord_qty_curr_level = so.get('Ord Qty - Cur. Level', 0)
-            net_qty = ord_qty_curr_level - on_hand_qty
-            so['Net Qty'] = net_qty if net_qty > 0 else 0
-            so['On Hand Qty'] = on_hand_qty
+            
+            # Net Qty for production is based ONLY on approved stock
+            net_qty_for_production = ord_qty_curr_level - approved_on_hand
+            
+            # Store all inventory figures for display and logic
+            so['Net Qty'] = net_qty_for_production if net_qty_for_production > 0 else 0
+            so['On Hand Qty Approved'] = approved_on_hand
+            so['On Hand Qty Pending QC'] = fg_inv.get('pending_qc', 0)
+            so['On Hand Qty Total'] = fg_inv.get('total', 0)
 
         # Enhance component demand tracking
         component_demand = {}
@@ -116,10 +131,30 @@ class MRPService:
         # 7. Process each sales order sequentially
         mrp_results = []
         for so in sales_orders:
+            ord_qty_curr_level = so.get('Ord Qty - Cur. Level', 0)
+            approved_on_hand = so.get('On Hand Qty Approved', 0)
+            pending_qc_on_hand = so.get('On Hand Qty Pending QC', 0)
             net_production_qty = so['Net Qty']
-            gross_order_qty = so.get('Ord Qty - Cur. Level', 0)
             part_number = so['Part']
+
+            # --- NEW LOGIC: Pre-check for FG availability before MRP component calculation ---
+            if ord_qty_curr_level <= approved_on_hand:
+                mrp_results.append({
+                    'sales_order': so, 'components': [], 'bottleneck': 'None',
+                    'can_produce_qty': ord_qty_curr_level, 'shifts_required': 0,
+                    'status': 'ready-to-ship'
+                })
+                continue
+
+            if ord_qty_curr_level <= (approved_on_hand + pending_qc_on_hand):
+                mrp_results.append({
+                    'sales_order': so, 'components': [], 'bottleneck': 'QC Hold',
+                    'can_produce_qty': approved_on_hand, 'shifts_required': 0,
+                    'status': 'pending-qc'
+                })
+                continue
             
+            # --- EXISTING MRP LOGIC for production ---
             final_can_produce_qty = float('inf')
             bottleneck = None
             bom_components = boms_by_parent.get(part_number, [])
@@ -147,15 +182,15 @@ class MRPService:
                 bottleneck = "No BOM Found"
 
             if final_can_produce_qty == float('inf'):
-                final_can_produce_qty = gross_order_qty
+                final_can_produce_qty = net_production_qty
 
-            so_result = {
-                'sales_order': so,
-                'components': [],
-                'bottleneck': bottleneck,
-                'can_produce_qty': final_can_produce_qty,
-                'shifts_required': 0
-            }
+            # Determine production status
+            prod_status = 'ok'
+            if net_production_qty > 0:
+                if final_can_produce_qty < net_production_qty:
+                    prod_status = 'partial' if final_can_produce_qty > 0 else 'critical'
+
+            component_details = []
 
             # --- PASS 2: ALLOCATION ---
             if bom_components:
@@ -175,8 +210,6 @@ class MRPService:
                     
                     if net_production_qty > 0:
                         allocated_for_this_so = min(inventory_before_this_so, required_for_constrained_build)
-                        
-                        # --- BUG FIX: Safely update live inventory ---
                         live_component_inventory[comp_part_num] = inventory_before_this_so - allocated_for_this_so
 
                         if comp_part_num not in allocation_log:
@@ -205,11 +238,11 @@ class MRPService:
                             total_string = f"Total Allocated to Others: {total_allocated_to_others:,.2f}"
                             shared_with_so_details.insert(0, total_string)
 
-                    component_details = {
+                    component_details.append({
                         'part_number': comp_part_num,
                         'description': component['Description'],
                         'shared_with_so': shared_with_so_details,
-                        'total_required': gross_order_qty * qty_per_unit,
+                        'total_required': ord_qty_curr_level * qty_per_unit,
                         'on_hand_initial': initial_inv['approved'],
                         'on_hand_pending_qc': initial_inv['pending_qc'],
                         'inventory_before_this_so': inventory_before_this_so,
@@ -217,8 +250,16 @@ class MRPService:
                         'open_po_qty': open_po_qty,
                         'total_available_for_so': available_for_allocation,
                         'shortfall': shortfall
-                    }
-                    so_result['components'].append(component_details)
+                    })
+            
+            so_result = {
+                'sales_order': so,
+                'components': component_details,
+                'bottleneck': bottleneck,
+                'can_produce_qty': final_can_produce_qty,
+                'shifts_required': 0,
+                'status': prod_status
+            }
 
             if capacities:
                 line_capacity = next(iter(capacities.values()), 0)
