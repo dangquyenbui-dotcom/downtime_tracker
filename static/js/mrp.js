@@ -152,6 +152,7 @@ function filterMRP() {
     let partialCount = 0;
     let criticalCount = 0;
     let readyToShipCount = 0;
+    let pendingQCCount = 0; 
 
     document.querySelectorAll('.so-header').forEach(header => {
         let show = true;
@@ -170,35 +171,57 @@ function filterMRP() {
                 }
             }
         }
-
-        const netQty = parseFloat(header.dataset.netQty);
-        if (statusFilter) {
-            if (statusFilter === 'ready-to-ship') {
-                if (netQty > 0) show = false;
-            } else {
-                if (netQty <= 0) show = false; // Exclude ready-to-ship from other statuses
-                if (header.dataset.status !== statusFilter) show = false;
-            }
+        
+        if (statusFilter && header.dataset.status !== statusFilter) {
+            show = false;
         }
 
         header.classList.toggle('hidden-row', !show);
         
         if(show) {
             visibleCount++;
-            if (netQty <= 0) {
-                readyToShipCount++;
-            } else {
-                if (header.dataset.status === 'ok') okCount++;
-                if (header.dataset.status === 'partial') partialCount++;
-                if (header.dataset.status === 'critical') criticalCount++;
+            const status = header.dataset.status;
+            switch(status) {
+                case 'ready-to-ship':
+                    readyToShipCount++;
+                    break;
+                case 'pending-qc':
+                case 'partial-ship-pending-qc': // Count both as Pending QC for the summary card
+                    pendingQCCount++;
+                    break;
+                case 'ok':
+                    okCount++;
+                    break;
+                case 'partial':
+                    partialCount++;
+                    break;
+                case 'critical':
+                    criticalCount++;
+                    break;
             }
         }
     });
 
-    updateSummaryCards(visibleCount, readyToShipCount, okCount, partialCount, criticalCount);
+    updateSummaryCards(visibleCount, readyToShipCount, pendingQCCount, okCount, partialCount, criticalCount);
+    updateRowCount(); // NEW: Update the row count
     saveFilters();
     sortMRP();
 }
+
+// NEW: Function to update the row count footer
+function updateRowCount() {
+    const totalRows = document.querySelectorAll('.mrp-accordion .so-header').length;
+    const visibleRows = document.querySelectorAll('.mrp-accordion .so-header:not(.hidden-row)').length;
+    const rowCountEl = document.getElementById('rowCount');
+    if (rowCountEl) {
+        if (totalRows > 0) {
+            rowCountEl.textContent = `Showing ${visibleRows} of ${totalRows} rows`;
+        } else {
+            rowCountEl.textContent = 'No rows to display';
+        }
+    }
+}
+
 
 function resetFilters() {
     document.getElementById('buFilter').value = '';
@@ -209,9 +232,10 @@ function resetFilters() {
     filterMRP();
 }
 
-function updateSummaryCards(total, readyToShip, ok, partial, critical) {
+function updateSummaryCards(total, readyToShip, pendingQC, ok, partial, critical) {
     document.getElementById('total-orders').textContent = total;
     document.getElementById('ready-to-ship-count').textContent = readyToShip;
+    document.getElementById('pending-qc-count').textContent = pendingQC;
     document.getElementById('full-production').textContent = ok;
     document.getElementById('partial-production').textContent = partial;
     document.getElementById('critical-shortage').textContent = critical;
@@ -241,7 +265,6 @@ function updateSortIndicators() {
         indicator.textContent = '';
         if (header.dataset.columnId === sortState.column) {
             if (sortState.direction === 'asc') {
-                header.classList.add('sorted-asc');
                 indicator.textContent = '▲';
             } else {
                 header.classList.add('sorted-desc');
@@ -288,7 +311,7 @@ function exportVisibleDataToXlsx() {
     exportBtn.textContent = '📥 Generating...';
 
     const headers = [
-        'SO', 'Finished Good', 'SO Required', 'SO Can Produce', 'SO Bottleneck',
+        'SO', 'Customer', 'Finished Good', 'SO Required', 'SO Can Produce', 'SO Bottleneck',
         'Component Part', 'Component Description', 'Total Required', 'Initial On-Hand',
         'Avail. Before SO', 'Allocated', 'Open PO Qty', 'Shortfall'
     ];
@@ -301,10 +324,11 @@ function exportVisibleDataToXlsx() {
 
         const soData = {
             so: header.querySelector('.so-info:nth-child(1) strong').textContent.trim(),
-            fg: header.querySelector('.so-info:nth-child(2) strong').textContent.trim(),
-            required: header.querySelector('.so-info:nth-child(3) strong').textContent.trim(),
-            canProduce: header.querySelector('.so-info:nth-child(4) strong').textContent.trim(),
-            bottleneck: header.querySelector('.so-info:nth-child(5) div').textContent.trim(),
+            customer: header.querySelector('.so-info:nth-child(2) strong').textContent.trim(),
+            fg: header.querySelector('.so-info:nth-child(3) strong').textContent.trim(),
+            required: header.querySelector('.so-info:nth-child(4) strong').textContent.trim(),
+            canProduce: header.querySelector('.so-info:nth-child(5) strong').textContent.trim(),
+            bottleneck: header.querySelector('.so-info:nth-child(6) div').textContent.trim(),
         };
 
         const detailsId = header.dataset.target;
@@ -313,7 +337,7 @@ function exportVisibleDataToXlsx() {
             if (detailsTable) {
                 detailsTable.querySelectorAll('tbody tr').forEach(compRow => {
                     const rowData = [
-                        soData.so, soData.fg, soData.required, soData.canProduce, soData.bottleneck,
+                        soData.so, soData.customer, soData.fg, soData.required, soData.canProduce, soData.bottleneck,
                         compRow.cells[0].textContent.trim().replace('🔗', '').trim(),
                         compRow.cells[1].textContent.trim(), compRow.cells[2].textContent.trim(),
                         compRow.cells[3].textContent.trim(), compRow.cells[4].textContent.trim(),
@@ -324,7 +348,7 @@ function exportVisibleDataToXlsx() {
                 });
             }
         } else {
-             rows.push([soData.so, soData.fg, soData.required, soData.canProduce, soData.bottleneck, '', '', '', '', '', '', '', '']);
+             rows.push([soData.so, soData.customer, soData.fg, soData.required, soData.canProduce, soData.bottleneck, '', '', '', '', '', '', '', '']);
         }
     });
 

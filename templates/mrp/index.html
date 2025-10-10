@@ -75,10 +75,13 @@
     .summary-card.purple .summary-value { color: var(--accent-purple); }
 
     /* --- ACCORDION --- */
-    .so-header-static {
+    .so-header-static, .so-header {
         display: grid;
-        grid-template-columns: 2fr 2fr 1fr 1fr 1.5fr 0.5fr;
+        grid-template-columns: 1.5fr 2fr 1.5fr 1fr 1fr 1.5fr 0.5fr;
         gap: 15px;
+        align-items: center;
+    }
+    .so-header-static {
         padding: 10px 20px;
         background: var(--table-header-bg);
         border: 1px solid var(--border-primary);
@@ -114,17 +117,12 @@
     .mrp-accordion {
         border: 1px solid var(--border-primary);
         border-top: none;
-        border-radius: 0 0 10px 10px;
-        overflow: hidden;
+        /* Removed border-radius to allow footer to connect */
         box-shadow: var(--shadow-sm);
     }
     .so-header {
         background: var(--bg-secondary);
         padding: 15px 20px;
-        display: grid;
-        grid-template-columns: 2fr 2fr 1fr 1fr 1.5fr 0.5fr;
-        gap: 15px;
-        align-items: center;
         border-bottom: 1px solid var(--border-primary);
         cursor: pointer;
         transition: background-color 0.2s;
@@ -139,11 +137,12 @@
     .so-header.hidden-row { display: none; }
     .so-header.status-ready-to-ship { border-left: 5px solid var(--accent-green); }
     .so-header.status-pending-qc { border-left: 5px solid var(--accent-purple); }
+    .so-header.status-partial-ship-pending-qc { border-left: 5px solid var(--accent-orange); } 
     .so-header.status-ok { border-left: 5px solid var(--accent-green); }
     .so-header.status-partial { border-left: 5px solid var(--accent-orange); }
     .so-header.status-critical { border-left: 5px solid var(--accent-red); }
 
-    .so-info { font-size: 14px; }
+    .so-info { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .so-info label { font-size: 11px; color: var(--text-tertiary); display: block; text-transform: uppercase; }
     .so-info strong { color: var(--text-primary); font-size: 1.1em; }
     .bottleneck-tag {
@@ -152,6 +151,7 @@
     }
     .bottleneck-tag.bottleneck { background: rgba(252, 129, 129, 0.2); color: var(--accent-red); }
     .bottleneck-tag.no-bottleneck { background: rgba(104, 211, 145, 0.2); color: var(--accent-green); }
+    .bottleneck-tag.partial-ship-qc { background: rgba(237, 137, 54, 0.15); color: var(--accent-orange); } 
     .ready-to-ship {
         background: rgba(104, 211, 145, 0.2);
         color: var(--accent-green);
@@ -193,6 +193,19 @@
         cursor: help;
         margin-right: 5px;
     }
+    /* NEW: Grid Footer Style */
+    .grid-footer {
+        padding: 10px 20px;
+        text-align: right;
+        font-size: 14px;
+        color: var(--text-tertiary);
+        font-weight: 500;
+        background: var(--bg-secondary);
+        border-radius: 0 0 10px 10px;
+        border: 1px solid var(--border-primary);
+        border-top: none;
+        margin-top: -1px; /* Overlap with accordion bottom border */
+    }
 </style>
 {% endblock %}
 
@@ -221,6 +234,7 @@
             <select id="statusFilter" class="form-select filter-select">
                 <option value="">All</option>
                 <option value="ready-to-ship">Ready to Ship</option>
+                <option value="partial-ship-pending-qc">Partial Ship / Pending QC</option>
                 <option value="pending-qc">Pending QC</option>
                 <option value="ok">Full Production</option>
                 <option value="partial">Partial Production</option>
@@ -266,6 +280,9 @@
     <div class="so-info sortable" data-column-id="SO" data-column-type="string">
         <label>Sales Order</label><span class="sort-indicator"></span>
     </div>
+    <div class="so-info sortable" data-column-id="Customer" data-column-type="string">
+        <label>Customer</label><span class="sort-indicator"></span>
+    </div>
     <div class="so-info sortable" data-column-id="FG" data-column-type="string">
         <label>Finished Good</label><span class="sort-indicator"></span>
     </div>
@@ -286,7 +303,7 @@
         {% set so = result.sales_order %}
         {% set status = result.status %}
         {% set has_components = result.components|length > 0 %}
-        {% set expand_class = 'no-expand' if status in ['ready-to-ship', 'pending-qc'] or not has_components else '' %}
+        {% set expand_class = 'no-expand' if status in ['ready-to-ship', 'pending-qc', 'partial-ship-pending-qc'] or not has_components else '' %}
         {% set unique_id = so.SO ~ '-' ~ so.Part|replace('.', '-') %}
 
         <div class="so-header status-{{ status }} {{ expand_class }}"
@@ -299,6 +316,7 @@
              data-net-qty="{{ so['Net Qty'] }}">
             
             <div class="so-info"><strong>{{ so.SO }}</strong></div>
+            <div class="so-info" title="{{ so['Customer Name'] }}"><strong>{{ so['Customer Name'] }}</strong></div>
             <div class="so-info"><strong>{{ so.Part }}</strong></div>
             <div class="so-info numeric"><strong>{{ "{:,.0f}".format(so['Ord Qty - Cur. Level']) }}</strong></div>
             <div class="so-info numeric"><strong style="font-size: 1.3em;">{{ "{:,.0f}".format(result.can_produce_qty) }}</strong></div>
@@ -307,9 +325,15 @@
                 {% if status == 'ready-to-ship' %}
                     <div class="ready-to-ship">Ready to Ship (On-Hand: {{ "{:,.0f}".format(so['On Hand Qty Approved']) }})</div>
                 {% elif status == 'pending-qc' %}
-                    <div class="pending-qc-tag">Pending QC (Approved: {{ "{:,.0f}".format(so['On Hand Qty Approved']) }}, QC: {{ "{:,.0f}".format(so['On Hand Qty Pending QC']) }})</div>
+                    <div class="pending-qc-tag">{{ result.bottleneck }}</div>
                 {% else %}
-                    <div class="bottleneck-tag {{ 'bottleneck' if status != 'ok' else 'no-bottleneck' }}">{{ result.bottleneck or 'None' }}</div>
+                    {% set bottleneck_class = 'no-bottleneck' %}
+                    {% if status == 'critical' or status == 'partial' %}
+                        {% set bottleneck_class = 'bottleneck' %}
+                    {% elif status == 'partial-ship-pending-qc' %}
+                        {% set bottleneck_class = 'partial-ship-qc' %}
+                    {% endif %}
+                    <div class="bottleneck-tag {{ bottleneck_class }}">{{ result.bottleneck or 'None' }}</div>
                 {% endif %}
             </div>
 
@@ -363,6 +387,10 @@
         <p>There are currently no open sales orders that require production based on on-hand inventory.</p>
     </div>
     {% endfor %}
+</div>
+
+<div class="grid-footer" id="gridFooter">
+    <span id="rowCount"></span>
 </div>
 {% endblock %}
 
