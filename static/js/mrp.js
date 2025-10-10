@@ -159,7 +159,6 @@ function filterMRP() {
     if (canProduceHeader) {
         switch (statusFilter) {
             case 'ready-to-ship':
-            case 'partial-ship':
                 canProduceHeader.textContent = 'Shippable Qty';
                 break;
             case 'job-created':
@@ -192,8 +191,16 @@ function filterMRP() {
             }
         }
         
-        if (statusFilter && status !== statusFilter) {
-            show = false;
+        if (statusFilter) {
+            if (statusFilter === 'ready-to-ship' && !['ready-to-ship', 'partial-ship'].includes(status)) {
+                show = false;
+            } else if (statusFilter === 'production-needed' && !['ok', 'partial'].includes(status)) {
+                show = false;
+            } else if (statusFilter === 'action-required' && !['critical', 'pending-qc'].includes(status)) {
+                show = false;
+            } else if (!['ready-to-ship', 'production-needed', 'action-required'].includes(statusFilter) && status !== statusFilter) {
+                show = false;
+            }
         }
 
 
