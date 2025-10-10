@@ -77,7 +77,8 @@
     /* --- ACCORDION --- */
     .so-header-static, .so-header {
         display: grid;
-        grid-template-columns: 1.5fr 2fr 1.5fr 1fr 1fr 1.5fr 0.5fr;
+        /* MODIFIED: Adjusted grid for new column */
+        grid-template-columns: 1fr 2.5fr 1.5fr 1.2fr 1fr 1fr 1.5fr 0.5fr;
         gap: 15px;
         align-items: center;
     }
@@ -117,7 +118,6 @@
     .mrp-accordion {
         border: 1px solid var(--border-primary);
         border-top: none;
-        /* Removed border-radius to allow footer to connect */
         box-shadow: var(--shadow-sm);
     }
     .so-header {
@@ -137,12 +137,12 @@
     .so-header.hidden-row { display: none; }
     .so-header.status-ready-to-ship { border-left: 5px solid var(--accent-green); }
     .so-header.status-pending-qc { border-left: 5px solid var(--accent-purple); }
-    .so-header.status-partial-ship-pending-qc { border-left: 5px solid var(--accent-orange); } 
+    .so-header.status-partial-ship-pending-qc { border-left: 5px solid var(--accent-orange); }
     .so-header.status-ok { border-left: 5px solid var(--accent-green); }
     .so-header.status-partial { border-left: 5px solid var(--accent-orange); }
     .so-header.status-critical { border-left: 5px solid var(--accent-red); }
 
-    .so-info { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .so-info { font-size: 14px; }
     .so-info label { font-size: 11px; color: var(--text-tertiary); display: block; text-transform: uppercase; }
     .so-info strong { color: var(--text-primary); font-size: 1.1em; }
     .bottleneck-tag {
@@ -151,7 +151,7 @@
     }
     .bottleneck-tag.bottleneck { background: rgba(252, 129, 129, 0.2); color: var(--accent-red); }
     .bottleneck-tag.no-bottleneck { background: rgba(104, 211, 145, 0.2); color: var(--accent-green); }
-    .bottleneck-tag.partial-ship-qc { background: rgba(237, 137, 54, 0.15); color: var(--accent-orange); } 
+    .bottleneck-tag.partial-ship-qc { background: rgba(237, 137, 54, 0.15); color: var(--accent-orange); }
     .ready-to-ship {
         background: rgba(104, 211, 145, 0.2);
         color: var(--accent-green);
@@ -193,7 +193,6 @@
         cursor: help;
         margin-right: 5px;
     }
-    /* NEW: Grid Footer Style */
     .grid-footer {
         padding: 10px 20px;
         text-align: right;
@@ -286,6 +285,9 @@
     <div class="so-info sortable" data-column-id="FG" data-column-type="string">
         <label>Finished Good</label><span class="sort-indicator"></span>
     </div>
+    <div class="so-info sortable" data-column-id="DueShip" data-column-type="date">
+        <label>Due to Ship</label><span class="sort-indicator"></span>
+    </div>
     <div class="so-info numeric sortable" data-column-id="Required" data-column-type="numeric">
         <label>Required</label><span class="sort-indicator"></span>
     </div>
@@ -318,6 +320,7 @@
             <div class="so-info"><strong>{{ so.SO }}</strong></div>
             <div class="so-info" title="{{ so['Customer Name'] }}"><strong>{{ so['Customer Name'] }}</strong></div>
             <div class="so-info"><strong>{{ so.Part }}</strong></div>
+            <div class="so-info"><strong>{{ (so['Due to Ship'] | date_i18n) if so['Due to Ship'] else 'N/A' }}</strong></div>
             <div class="so-info numeric"><strong>{{ "{:,.0f}".format(so['Ord Qty - Cur. Level']) }}</strong></div>
             <div class="so-info numeric"><strong style="font-size: 1.3em;">{{ "{:,.0f}".format(result.can_produce_qty) }}</strong></div>
             

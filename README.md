@@ -158,3 +158,193 @@ A comprehensive, role-restricted area for managing all aspects of the applicatio
 |
 └── ...
 ```
+
+# Production Portal v2.1.0
+
+The Production Portal is a comprehensive, web-based application designed to streamline and manage various aspects of a manufacturing environment. It provides real-time data, enhances visibility into production processes, and offers tools for planning, tracking, and reporting.
+
+## About The Project
+
+This portal serves as a centralized hub for production-related activities, integrating with the company's ERP system to provide up-to-date information. It is built with a focus on usability, accessibility, and data accuracy, empowering both shop floor operators and administrative staff.
+
+### Key Technologies
+
+* **Backend:** Python (Flask)
+* **Frontend:** HTML, CSS, JavaScript
+* **Database:** Microsoft SQL Server
+* **Authentication:** Active Directory integration
+* **Internationalization:** Flask-Babel for multi-language support (English & Spanish)
+
+## Features
+
+* **Role-Based Access Control:** Granular permissions for different user groups (Admin, User, Scheduling Admin, Scheduling User).
+* **ERP Integration:** Real-time data synchronization with the ERP system for modules like BOM, PO, and MRP.
+* **Internationalization:** Support for English and Spanish languages, with a user-friendly language selector.
+* **Responsive UI:** A modern and responsive user interface that works on both desktop and mobile devices.
+* **Dark Mode:** A theme-switcher for a personalized user experience.
+
+## Modules
+
+The Production Portal is composed of several modules, each designed to address a specific area of the production process:
+
+### 1. Downtime Tracking
+
+* **Purpose:** To record and analyze unplanned downtime events on the production floor.
+* **Key Features:**
+    * Simple and intuitive form for reporting downtime.
+    * Real-time updates to the database.
+    * Categorization of downtime reasons for better analysis.
+* **Access:** Administrators and standard users.
+
+### 2. Scheduling
+
+* **Purpose:** To plan and visualize the production schedule based on open sales orders.
+* **Key Features:**
+    * Interactive calendar view of the production schedule.
+    * Drag-and-drop interface for rescheduling production runs.
+    * Capacity planning based on production line output.
+* **Access:** Administrators and Scheduling users.
+
+### 3. Bill of Materials (BOM) Viewer
+
+* **Purpose:** To provide a read-only view of the Bill of Materials for all finished goods.
+* **Key Features:**
+    * Search and filter functionality to easily find BOMs.
+    * Detailed view of all components, quantities, and units of measure.
+    * Real-time data from the ERP system.
+* **Access:** Administrators and Scheduling users.
+
+### 4. Purchase Order (PO) Viewer
+
+* **Purpose:** To view the status and details of open purchase orders for raw materials.
+* **Key Features:**
+    * Comprehensive list of all open POs.
+    * Detailed view of each PO, including vendor, expected delivery date, and line items.
+    * Live data from the ERP system.
+* **Access:** Administrators and Scheduling users.
+
+### 5. Material Requirements Planning (MRP)
+
+* **Purpose:** To provide intelligent suggestions for production based on material availability.
+* **Key Features:**
+    * Analyzes open sales orders against current inventory and open POs.
+    * Identifies potential material shortages and production bottlenecks.
+    * Prioritizes production based on "Due to Ship" dates.
+    * Color-coded status indicators for at-a-glance understanding.
+* **Access:** Administrators and Scheduling users.
+
+### 6. Admin Panel
+
+* **Purpose:** To manage the core settings and data of the application.
+* **Key Features:**
+    * **Facilities Management:** Add, edit, and manage production facilities.
+    * **Production Lines:** Configure and manage production lines within each facility.
+    * **Downtime Categories:** Define the reasons for production downtime.
+    * **Shifts:** Manage production shifts and schedules.
+    * **Production Capacity:** Set the expected output per shift for each production line.
+    * **User Management:** View all users and their access levels.
+    * **Audit Log:** Track all significant changes made within the application.
+* **Access:** Administrators only.
+
+## Getting Started
+
+To get a local copy up and running, follow these simple steps.
+
+### Prerequisites
+
+* Python 3.10+
+* Pip (Python package installer)
+* Access to the SQL Server database
+* Access to the Active Directory domain
+
+### Installation
+
+1.  **Clone the repo**
+    ```sh
+    git clone [https://your-repo-url.com/production-portal.git](https://your-repo-url.com/production-portal.git)
+    cd production-portal
+    ```
+2.  **Create a virtual environment**
+    ```sh
+    python -m venv venv
+    ```
+3.  **Activate the virtual environment**
+    * **Windows:**
+        ```sh
+        .\venv\Scripts\activate
+        ```
+    * **macOS/Linux:**
+        ```sh
+        source venv/bin/activate
+        ```
+4.  **Install Python packages**
+    ```sh
+    pip install -r requirements.txt
+    ```
+
+### Configuration
+
+All configuration is managed in the `config.py` file. You will need to set the following variables:
+
+* **Database Credentials:**
+    * `DB_SERVER`
+    * `DB_NAME`
+    * `DB_USER`
+    * `DB_PASSWORD`
+* **Active Directory Settings:**
+    * `AD_DOMAIN`
+    * `AD_SERVER`
+    * `AD_ADMIN_GROUP`
+    * `AD_USER_GROUP`
+    * `AD_SCHEDULING_ADMIN_GROUP`
+    * `AD_SCHEDULING_USER_GROUP`
+* **Application Settings:**
+    * `SECRET_KEY`: A strong, randomly generated secret key.
+    * `SESSION_HOURS`: The number of hours a user session should remain active.
+    * `TEST_MODE`: Set to `True` to bypass Active Directory authentication for local development.
+
+### Running the Application
+
+Once the installation and configuration are complete, you can run the application with the following command:
+
+```sh
+python app.py
+```
+
+The application will be accessible at `http://localhost:5000`.
+
+## Internationalization (i18n)
+
+The application uses `Flask-Babel` to provide support for multiple languages.
+
+### Adding a New Language
+
+1.  **Extract translatable strings:**
+    ```sh
+    pybabel extract -F babel.cfg -o messages.pot .
+    ```
+2.  **Create a new language catalog:** (e.g., for French)
+    ```sh
+    pybabel init -i messages.pot -d translations -l fr
+    ```
+3.  **Translate the strings** in the newly created `.po` file (`translations/fr/LC_MESSAGES/messages.po`).
+4.  **Compile the translations:**
+    ```sh
+    pybabel compile -d translations
+    ```
+
+### Updating Translations
+
+1.  **Extract the latest strings:**
+    ```sh
+    pybabel extract -F babel.cfg -o messages.pot .
+    ```
+2.  **Update the language catalogs:**
+    ```sh
+    pybabel update -i messages.pot -d translations
+    ```
+3.  **Translate any new strings** in the `.po` files.
+4.  **Compile the updated translations:**
+    ```sh
+    pybabel compile -d translations
+    ```
