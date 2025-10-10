@@ -159,14 +159,14 @@ function filterMRP() {
     if (canProduceHeader) {
         switch (statusFilter) {
             case 'ready-to-ship':
-            case 'partial-ship-pending-qc':
+            case 'partial-ship':
                 canProduceHeader.textContent = 'Shippable Qty';
                 break;
             case 'job-created':
                 canProduceHeader.textContent = 'Shippable On-Hand';
                 break;
             default:
-                canProduceHeader.textContent = 'Can Produce';
+                canProduceHeader.textContent = 'Deliverable Qty';
                 break;
         }
     }
@@ -192,16 +192,8 @@ function filterMRP() {
             }
         }
         
-        if (statusFilter) {
-            if (statusFilter === 'partial-ship-pending-qc') {
-                if (status !== 'partial-ship-pending-qc' && status !== 'pending-qc') {
-                    show = false;
-                }
-            } else {
-                if (status !== statusFilter) {
-                    show = false;
-                }
-            }
+        if (statusFilter && status !== statusFilter) {
+            show = false;
         }
 
 
@@ -214,7 +206,6 @@ function filterMRP() {
                     readyToShipCount++;
                     break;
                 case 'pending-qc':
-                case 'partial-ship-pending-qc': 
                     pendingQCCount++;
                     break;
                 case 'job-created':
@@ -224,6 +215,7 @@ function filterMRP() {
                     okCount++;
                     break;
                 case 'partial':
+                case 'partial-ship': // Count new status in partial bucket
                     partialCount++;
                     break;
                 case 'critical':
@@ -296,10 +288,10 @@ function updateSortIndicators() {
         indicator.textContent = '';
         if (header.dataset.columnId === sortState.column) {
             if (sortState.direction === 'asc') {
-                indicator.textContent = '▲';
+                indicator.textContent = '↑';
             } else {
                 header.classList.add('sorted-desc');
-                indicator.textContent = '▼';
+                indicator.textContent = '↓';
             }
         }
     });
@@ -363,7 +355,7 @@ function exportVisibleDataToXlsx() {
         };
 
         const detailsId = header.dataset.target;
-        if (detailsId) {
+        if (detailsId && !header.classList.contains('no-expand')) {
             const detailsTable = document.getElementById(detailsId);
             if (detailsTable) {
                 detailsTable.querySelectorAll('tbody tr').forEach(compRow => {

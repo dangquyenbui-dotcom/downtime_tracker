@@ -139,7 +139,7 @@
     .so-header.hidden-row { display: none; }
     .so-header.status-ready-to-ship { border-left: 5px solid var(--accent-green); }
     .so-header.status-pending-qc { border-left: 5px solid var(--accent-purple); }
-    .so-header.status-partial-ship-pending-qc { border-left: 5px solid var(--accent-orange); }
+    .so-header.status-partial-ship { border-left: 5px solid var(--accent-orange); }
     .so-header.status-ok { border-left: 5px solid var(--accent-green); }
     .so-header.status-partial { border-left: 5px solid var(--accent-orange); }
     .so-header.status-critical { border-left: 5px solid var(--accent-red); }
@@ -154,7 +154,8 @@
     }
     .bottleneck-tag.bottleneck { background: rgba(252, 129, 129, 0.2); color: var(--accent-red); }
     .bottleneck-tag.no-bottleneck { background: rgba(104, 211, 145, 0.2); color: var(--accent-green); }
-    .bottleneck-tag.partial-ship-qc { background: rgba(237, 137, 54, 0.15); color: var(--accent-orange); }
+    .partial-ship-tag { background: rgba(237, 137, 54, 0.15); color: var(--accent-orange); }
+
     .job-created-tag {
         background-color: rgba(79, 209, 197, 0.2);
         color: #2c7a7b;
@@ -249,7 +250,8 @@
                 <option value="">All</option>
                 <option value="job-created">Job Created</option>
                 <option value="ready-to-ship">Ready to Ship</option>
-                <option value="partial-ship-pending-qc">Partial Ship / Pending QC</option>
+                <option value="partial-ship">Partial Ship</option>
+                <option value="pending-qc">Pending QC</option>
                 <option value="ok">Full Production</option>
                 <option value="partial">Partial Production</option>
                 <option value="critical">Critical Shortage</option>
@@ -311,10 +313,10 @@
         <label>Required</label><span class="sort-indicator"></span>
     </div>
     <div class="so-info numeric sortable" data-column-id="CanProduce" data-column-type="numeric">
-        <label>Can Produce</label><span class="sort-indicator"></span>
+        <label>Deliverable Qty</label><span class="sort-indicator"></span>
     </div>
     <div class="so-info sortable" data-column-id="Bottleneck" data-column-type="string">
-        <label>Bottleneck</label><span class="sort-indicator"></span>
+        <label>Status / Bottleneck</label><span class="sort-indicator"></span>
     </div>
     <div class="expand-icon" style="visibility: hidden;">›</div>
 </div>
@@ -324,7 +326,7 @@
         {% set so = result.sales_order %}
         {% set status = result.status %}
         {% set has_components = result.components|length > 0 %}
-        {% set expand_class = 'no-expand' if status in ['ready-to-ship', 'pending-qc', 'partial-ship-pending-qc', 'job-created'] or not has_components else '' %}
+        {% set expand_class = 'no-expand' if status in ['ready-to-ship', 'pending-qc', 'partial-ship', 'job-created'] or not has_components else '' %}
         {% set unique_id = so.SO ~ '-' ~ so.Part|replace('.', '-') %}
 
         <div class="so-header status-{{ status }} {{ expand_class }}"
@@ -359,8 +361,10 @@
                     {% endif %}
                 {% elif status == 'ready-to-ship' %}
                     <div class="ready-to-ship">Ready to Ship (On-Hand: {{ "{:,.0f}".format(so['On Hand Qty Approved']) }})</div>
-                {% elif status == 'pending-qc' or status == 'partial-ship-pending-qc' %}
+                {% elif status == 'pending-qc' %}
                     <div class="pending-qc-tag">{{ result.bottleneck }}</div>
+                {% elif status == 'partial-ship' %}
+                    <div class="bottleneck-tag partial-ship-tag">{{ result.bottleneck }}</div>
                 {% else %}
                     {% set bottleneck_class = 'no-bottleneck' %}
                     {% if status == 'critical' or status == 'partial' %}
