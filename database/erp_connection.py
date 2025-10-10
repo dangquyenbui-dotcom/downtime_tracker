@@ -9,6 +9,7 @@ from config import Config
 from datetime import datetime, timedelta
 
 class ERPConnection:
+    # ... (this class is unchanged) ...
     def __init__(self):
         self.connection = None
         self._connection_string = None # Store the successful connection string
@@ -84,6 +85,7 @@ def get_erp_db():
 class ErpService:
     """Contains all business logic for querying the ERP database."""
 
+    # ... (all existing methods like get_raw_material_inventory, get_bom_data, etc. remain here) ...
     def get_raw_material_inventory(self):
         """
         Retrieves all raw material inventory, categorized by status, based on the provided JS logic.
@@ -392,34 +394,20 @@ class ErpService:
 
     def get_split_fg_on_hand_value(self):
         today = datetime.now()
-
-        # --- MODIFIED DATE & LABEL LOGIC ---
-        
-        # Calculate key date objects
         first_of_this_month = today.replace(day=1)
         last_of_previous_month = first_of_this_month - timedelta(days=1)
-        
-        # Define the cutoff dates for the SQL query
         prior_cutoff_date = last_of_previous_month.replace(day=19)
         current_cutoff_date = today.replace(day=19)
-        
-        # Define additional dates for labeling
         current_eighteenth_date = today.replace(day=18)
         
-        # Format date strings for the labels
         date_format = '%m/%d/%y'
         prior_cutoff_str = prior_cutoff_date.strftime(date_format)
         current_eighteenth_str = current_eighteenth_date.strftime(date_format)
         current_cutoff_str = current_cutoff_date.strftime(date_format)
         
-        # Bucket 4: "FG On Hand - Prior (MM-1)/19/YY"
         label1 = f"FG On Hand - Prior {prior_cutoff_str}"
-        # Bucket 5: "FG On Hand - (MM-1)/19/YY To MM/18/YY"
         label2 = f"FG On Hand - {prior_cutoff_str} To {current_eighteenth_str}"
-        # Bucket 6: "FG On Hand - From MM/19/YY"
         label3 = f"FG On Hand - From {current_cutoff_str}"
-
-        # --- END OF MODIFIED LOGIC ---
 
         db = get_erp_db()
         sql = """
@@ -435,42 +423,33 @@ class ErpService:
                 AND p.pr_codenum LIKE 'T%'
                 AND w.wa_name IN ('DUARTE', 'IRWINDALE');
         """
-        
-        # Parameters for the query use the calculated cutoff dates
         params = (prior_cutoff_date, prior_cutoff_date, current_cutoff_date, current_cutoff_date)
         result = db.execute_query(sql, params)
         
         if result:
             return {
-                'label1': label1,
-                'value1': result[0]['value1'] or 0,
-                'label2': label2,
-                'value2': result[0]['value2'] or 0,
-                'label3': label3,
-                'value3': result[0]['value3'] or 0
+                'label1': label1, 'value1': result[0]['value1'] or 0,
+                'label2': label2, 'value2': result[0]['value2'] or 0,
+                'label3': label3, 'value3': result[0]['value3'] or 0
             }
         return {'label1': label1, 'value1': 0, 'label2': label2, 'value2': 0, 'label3': label3, 'value3': 0}
 
     def get_shipped_for_current_month(self):
         db = get_erp_db()
         sql = """
-            SELECT
-                SUM(det.or_shipquant * det.or_price) AS total_shipped_value
+            SELECT SUM(det.or_shipquant * det.or_price) AS total_shipped_value
             FROM dttord ord
             INNER JOIN dtord det ON ord.to_id = det.or_toid
-            WHERE
-                ord.to_shipped IS NOT NULL
-                AND ord.to_status = 'c'
+            WHERE ord.to_shipped IS NOT NULL AND ord.to_status = 'c'
                 AND ord.to_ordtype IN ('s', 'm')
                 AND MONTH(ord.to_shipped) = MONTH(GETDATE())
                 AND YEAR(ord.to_shipped) = YEAR(GETDATE());
         """
         result = db.execute_query(sql)
-        if result and result[0]['total_shipped_value'] is not None:
-            return result[0]['total_shipped_value']
-        return 0
+        return result[0]['total_shipped_value'] if result and result[0]['total_shipped_value'] is not None else 0
 
     def get_open_order_schedule(self):
+        # ... (this very large query is unchanged) ...
         db = get_erp_db()
         sql = """
             WITH LatestOrderStatus AS (
