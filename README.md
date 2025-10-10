@@ -1,3 +1,7 @@
+Of course. Based on all the features and improvements we've implemented, I have completely rewritten the `README.md` file to provide a comprehensive and up-to-date overview of the Production Portal application.
+
+Here is the new content for your `README.md` file:
+
 # Production Portal: Downtime Tracker & MRP Scheduler
 
 ## Overview
@@ -6,7 +10,7 @@ A robust, enterprise-ready web application designed for manufacturing environmen
 
 The system's hybrid data architecture connects to a **read-only ERP database** for live production and material data while storing all user-generated data—such as downtime events, scheduling projections, and production capacity—in a separate, fully-controlled local SQL Server database (`ProductionDB`).
 
-**Current Version:** 2.5.1 (MRP Dashboard Complete with advanced logic)
+**Current Version:** 2.6.0 (MRP Dashboard Complete with advanced logic)
 **Status:** **All core modules are complete and operational.**
 
 -----
@@ -62,23 +66,26 @@ A dynamic, filterable dashboard that serves as the central planning tool. It ana
 
 #### Core Logic & Business Rules:
 
-  * **Sequential Allocation by Date:** The MRP engine first sorts all open Sales Orders by their "Due to Ship" date, from earliest to latest. It then processes them one by one, allocating available raw material inventory to the highest-priority orders first.
-  * **Inventory Availability:** The "Can Produce" calculation is based on the sum of three key inventory figures:
+  * **Sequential Allocation by Date:** The MRP engine first sorts all open Sales Orders by their "Due to Ship" date, from earliest to latest. It then processes them one by one, allocating available inventory to the highest-priority orders first.
+  * **Finished Goods Allocation:** The system maintains a "live" in-memory inventory of finished goods. As it processes SOs, it depletes this on-hand stock sequentially. An SO is only marked "Ready to Ship" if the live inventory can fully cover its requirement at that moment.
+  * **Inventory Availability:** The "Can Produce" calculation for items that require production is based on the sum of three key component inventory figures:
     1.  **Approved, On-Hand Inventory:** The main pool of unrestricted materials.
     2.  **Pending QC Inventory:** Materials that have been received but are awaiting quality inspection. These are included for planning purposes to provide a more realistic view of upcoming availability.
     3.  **Open Purchase Order Quantity:** Materials that are on order but not yet received.
-  * **Two-Pass Calculation per Sales Order:** To ensure accuracy, the engine uses a two-pass system for each Sales Order:
+  * **Two-Pass Calculation per Sales Order:** To ensure accuracy for production orders, the engine uses a two-pass system:
     1.  **Pass 1 (Discovery):** It first loops through all required components to find the single greatest constraint (the "bottleneck") and determines the absolute maximum quantity of the finished good that can be produced.
-    2.  **Pass 2 (Allocation):** With the true "Can Produce" quantity established, it loops through the components a second time, allocating only the precise amount of each material needed to produce the constrained quantity. This prevents over-allocation of non-bottleneck materials and frees them up for lower-priority orders.
+    2.  **Pass 2 (Allocation):** With the true "Can Produce" quantity established, it loops through the components a second time, allocating only the precise amount of each material needed from the "live" component inventory. This prevents over-allocation of non-bottleneck materials and frees them up for lower-priority orders.
   * **Committed Inventory Exclusion:** Inventory that has already been "Issued to Job" is considered Work-in-Progress (WIP) and is **excluded** from all MRP calculations to prevent double-promising materials.
 
 #### Features:
 
   * **Holistic View:** Displays **all** open sales orders for data consistency and validation against the Scheduling page.
-  * **Intelligent Filtering:** Instantly narrow down orders by **Business Unit (BU), Customer, Due to Ship (Month/Year), and Production Status** (Full Production, Partial, Critical, Ready to Ship).
+  * **Intelligent Filtering:** Instantly narrow down orders by **Business Unit (BU), Customer, Due to Ship (Month/Year), and Production Status**.
   * **Smart Statuses:**
-      * **Ready to Ship:** Orders that can be fulfilled entirely from existing finished goods inventory are clearly marked and do not have an expandable detail view, simplifying the interface.
-      * **Full Production / Partial / Critical:** Statuses are determined by comparing the "Can Produce" quantity against the required amount.
+      * **Ready to Ship:** Orders that can be fulfilled entirely from existing finished goods inventory.
+      * **Partial Ship / Pending QC:** Orders that can be partially fulfilled from on-hand stock, with the remainder covered by stock that is pending quality control.
+      * **Pending QC:** Orders that cannot be shipped from on-hand stock but can be fully covered by stock that is pending quality control.
+      * **Full Production / Partial / Critical:** Statuses determined by comparing the "Can Produce" quantity against the required amount for production.
   * **Enhanced Tooltips:** Hovering over the 🔗 icon next to a component reveals a detailed tooltip showing the **total quantity allocated to prior orders** and a line-by-line breakdown of which specific Sales Orders consumed that inventory.
   * **Excel Export:** Download the currently filtered and sorted view of the MRP data, including all component details, to an XLSX file.
 
