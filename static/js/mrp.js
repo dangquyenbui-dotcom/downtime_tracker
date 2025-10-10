@@ -153,9 +153,29 @@ function filterMRP() {
     let criticalCount = 0;
     let readyToShipCount = 0;
     let pendingQCCount = 0; 
+    let jobCreatedCount = 0;
+
+    const canProduceHeader = document.querySelector('.so-header-static [data-column-id="CanProduce"] label');
+    if (canProduceHeader) {
+        switch (statusFilter) {
+            case 'ready-to-ship':
+            case 'partial-ship-pending-qc':
+                canProduceHeader.textContent = 'Shippable Qty';
+                break;
+            case 'job-created':
+                canProduceHeader.textContent = 'Shippable On-Hand';
+                break;
+            default:
+                canProduceHeader.textContent = 'Can Produce';
+                break;
+        }
+    }
+
 
     document.querySelectorAll('.so-header').forEach(header => {
         let show = true;
+        const status = header.dataset.status;
+
         if (buFilter && header.dataset.bu !== buFilter) show = false;
         if (customerFilter && header.dataset.customer !== customerFilter) show = false;
         
@@ -172,22 +192,33 @@ function filterMRP() {
             }
         }
         
-        if (statusFilter && header.dataset.status !== statusFilter) {
-            show = false;
+        if (statusFilter) {
+            if (statusFilter === 'partial-ship-pending-qc') {
+                if (status !== 'partial-ship-pending-qc' && status !== 'pending-qc') {
+                    show = false;
+                }
+            } else {
+                if (status !== statusFilter) {
+                    show = false;
+                }
+            }
         }
+
 
         header.classList.toggle('hidden-row', !show);
         
         if(show) {
             visibleCount++;
-            const status = header.dataset.status;
             switch(status) {
                 case 'ready-to-ship':
                     readyToShipCount++;
                     break;
                 case 'pending-qc':
-                case 'partial-ship-pending-qc': // Count both as Pending QC for the summary card
+                case 'partial-ship-pending-qc': 
                     pendingQCCount++;
+                    break;
+                case 'job-created':
+                    jobCreatedCount++;
                     break;
                 case 'ok':
                     okCount++;
@@ -202,13 +233,12 @@ function filterMRP() {
         }
     });
 
-    updateSummaryCards(visibleCount, readyToShipCount, pendingQCCount, okCount, partialCount, criticalCount);
-    updateRowCount(); // NEW: Update the row count
+    updateSummaryCards(visibleCount, readyToShipCount, pendingQCCount, okCount, partialCount, criticalCount, jobCreatedCount);
+    updateRowCount();
     saveFilters();
     sortMRP();
 }
 
-// NEW: Function to update the row count footer
 function updateRowCount() {
     const totalRows = document.querySelectorAll('.mrp-accordion .so-header').length;
     const visibleRows = document.querySelectorAll('.mrp-accordion .so-header:not(.hidden-row)').length;
@@ -232,13 +262,14 @@ function resetFilters() {
     filterMRP();
 }
 
-function updateSummaryCards(total, readyToShip, pendingQC, ok, partial, critical) {
+function updateSummaryCards(total, readyToShip, pendingQC, ok, partial, critical, jobCreated) {
     document.getElementById('total-orders').textContent = total;
     document.getElementById('ready-to-ship-count').textContent = readyToShip;
     document.getElementById('pending-qc-count').textContent = pendingQC;
     document.getElementById('full-production').textContent = ok;
     document.getElementById('partial-production').textContent = partial;
     document.getElementById('critical-shortage').textContent = critical;
+    document.getElementById('job-created-count').textContent = jobCreated;
 }
 
 function handleSortClick(e) {
@@ -326,9 +357,9 @@ function exportVisibleDataToXlsx() {
             so: header.querySelector('.so-info:nth-child(1) strong').textContent.trim(),
             customer: header.querySelector('.so-info:nth-child(2) strong').textContent.trim(),
             fg: header.querySelector('.so-info:nth-child(3) strong').textContent.trim(),
-            required: header.querySelector('.so-info:nth-child(4) strong').textContent.trim(),
-            canProduce: header.querySelector('.so-info:nth-child(5) strong').textContent.trim(),
-            bottleneck: header.querySelector('.so-info:nth-child(6) div').textContent.trim(),
+            required: header.querySelector('.so-info:nth-child(5) strong').textContent.trim(),
+            canProduce: header.querySelector('.so-info:nth-child(6) strong').textContent.trim(),
+            bottleneck: header.querySelector('.so-info:nth-child(7) div').textContent.trim(),
         };
 
         const detailsId = header.dataset.target;

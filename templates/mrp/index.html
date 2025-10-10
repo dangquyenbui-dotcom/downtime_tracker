@@ -45,7 +45,7 @@
     .filter-select { min-width: 160px; }
     .summary-grid {
         display: grid;
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(7, 1fr);
         gap: 20px;
         margin-bottom: 20px;
     }
@@ -73,11 +73,13 @@
     .summary-card.critical .summary-value { color: var(--accent-red); }
     .summary-card.blue .summary-value { color: var(--accent-blue); }
     .summary-card.purple .summary-value { color: var(--accent-purple); }
+    .summary-card.teal .summary-value { color: #38B2AC; }
+    [data-theme="dark"] .summary-card.teal .summary-value { color: #81e6d9; }
+
 
     /* --- ACCORDION --- */
     .so-header-static, .so-header {
         display: grid;
-        /* MODIFIED: Adjusted grid for new column */
         grid-template-columns: 1fr 2.5fr 1.5fr 1.2fr 1fr 1fr 1.5fr 0.5fr;
         gap: 15px;
         align-items: center;
@@ -141,6 +143,7 @@
     .so-header.status-ok { border-left: 5px solid var(--accent-green); }
     .so-header.status-partial { border-left: 5px solid var(--accent-orange); }
     .so-header.status-critical { border-left: 5px solid var(--accent-red); }
+    .so-header.status-job-created { border-left: 5px solid #38B2AC; }
 
     .so-info { font-size: 14px; }
     .so-info label { font-size: 11px; color: var(--text-tertiary); display: block; text-transform: uppercase; }
@@ -152,6 +155,18 @@
     .bottleneck-tag.bottleneck { background: rgba(252, 129, 129, 0.2); color: var(--accent-red); }
     .bottleneck-tag.no-bottleneck { background: rgba(104, 211, 145, 0.2); color: var(--accent-green); }
     .bottleneck-tag.partial-ship-qc { background: rgba(237, 137, 54, 0.15); color: var(--accent-orange); }
+    .job-created-tag {
+        background-color: rgba(79, 209, 197, 0.2);
+        color: #2c7a7b;
+        padding: 8px 12px;
+        border-radius: 5px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 13px;
+    }
+    [data-theme="dark"] .job-created-tag {
+        color: #81e6d9;
+    }
     .ready-to-ship {
         background: rgba(104, 211, 145, 0.2);
         color: var(--accent-green);
@@ -232,9 +247,9 @@
             <label for="statusFilter">Status:</label>
             <select id="statusFilter" class="form-select filter-select">
                 <option value="">All</option>
+                <option value="job-created">Job Created</option>
                 <option value="ready-to-ship">Ready to Ship</option>
                 <option value="partial-ship-pending-qc">Partial Ship / Pending QC</option>
-                <option value="pending-qc">Pending QC</option>
                 <option value="ok">Full Production</option>
                 <option value="partial">Partial Production</option>
                 <option value="critical">Critical Shortage</option>
@@ -252,6 +267,10 @@
     <div class="summary-card total">
         <div class="summary-value" id="total-orders">0</div>
         <div class="summary-label">Total Orders</div>
+    </div>
+     <div class="summary-card teal">
+        <div class="summary-value" id="job-created-count">0</div>
+        <div class="summary-label">Job Created</div>
     </div>
     <div class="summary-card blue">
         <div class="summary-value" id="ready-to-ship-count">0</div>
@@ -305,7 +324,7 @@
         {% set so = result.sales_order %}
         {% set status = result.status %}
         {% set has_components = result.components|length > 0 %}
-        {% set expand_class = 'no-expand' if status in ['ready-to-ship', 'pending-qc', 'partial-ship-pending-qc'] or not has_components else '' %}
+        {% set expand_class = 'no-expand' if status in ['ready-to-ship', 'pending-qc', 'partial-ship-pending-qc', 'job-created'] or not has_components else '' %}
         {% set unique_id = so.SO ~ '-' ~ so.Part|replace('.', '-') %}
 
         <div class="so-header status-{{ status }} {{ expand_class }}"
@@ -325,16 +344,27 @@
             <div class="so-info numeric"><strong style="font-size: 1.3em;">{{ "{:,.0f}".format(result.can_produce_qty) }}</strong></div>
             
             <div class="so-info">
-                {% if status == 'ready-to-ship' %}
+                {% if status == 'job-created' %}
+                    {% set jobs = result.job_details %}
+                    {% if jobs and jobs|length > 1 %}
+                        {% set tooltip_lines = [] %}
+                        {% for job in jobs %}
+                            {% set completed = '{:,.0f}'.format(job.completed_quantity|float) %}
+                            {% set target = '{:,.0f}'.format(job.job_quantity|float) %}
+                            {% set _ = tooltip_lines.append('Job ' ~ job.jo_jobnum ~ ': ' ~ completed ~ ' / ' ~ target) %}
+                        {% endfor %}
+                        <div class="job-created-tag" title="{{ tooltip_lines|join('\n') }}">{{ result.bottleneck }}</div>
+                    {% else %}
+                        <div class="job-created-tag">{{ result.bottleneck }}</div>
+                    {% endif %}
+                {% elif status == 'ready-to-ship' %}
                     <div class="ready-to-ship">Ready to Ship (On-Hand: {{ "{:,.0f}".format(so['On Hand Qty Approved']) }})</div>
-                {% elif status == 'pending-qc' %}
+                {% elif status == 'pending-qc' or status == 'partial-ship-pending-qc' %}
                     <div class="pending-qc-tag">{{ result.bottleneck }}</div>
                 {% else %}
                     {% set bottleneck_class = 'no-bottleneck' %}
                     {% if status == 'critical' or status == 'partial' %}
                         {% set bottleneck_class = 'bottleneck' %}
-                    {% elif status == 'partial-ship-pending-qc' %}
-                        {% set bottleneck_class = 'partial-ship-qc' %}
                     {% endif %}
                     <div class="bottleneck-tag {{ bottleneck_class }}">{{ result.bottleneck or 'None' }}</div>
                 {% endif %}
