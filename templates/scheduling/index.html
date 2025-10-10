@@ -278,6 +278,53 @@
         opacity: 1;
         color: var(--accent-blue);
     }
+
+    /* --- NEW Multi-select filter styles --- */
+    .multiselect-container {
+        position: relative;
+    }
+    .multiselect-btn {
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-right: 30px; /* Space for a dropdown arrow if needed */
+    }
+    .multiselect-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 5px);
+        left: 0;
+        min-width: 100%;
+        max-height: 250px;
+        overflow-y: auto;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: 8px;
+        box-shadow: var(--shadow-md);
+        z-index: 1002;
+        padding: 5px;
+    }
+    .multiselect-dropdown.show {
+        display: block;
+    }
+    .multiselect-dropdown label {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 14px;
+        color: var(--text-primary);
+        white-space: nowrap;
+    }
+    .multiselect-dropdown label:hover {
+        background-color: var(--bg-hover);
+    }
+    .multiselect-dropdown input[type="checkbox"] {
+        margin-right: 10px;
+    }
+
 </style>
 {% endblock %}
 
@@ -327,16 +374,24 @@
 <div class="controls-bar">
     <div class="filters-container">
         <div class="filter-group">
-            <label for="facilityFilter">Facility:</label>
-            <select id="facilityFilter" class="form-select filter-select"><option value="">All</option></select>
+            <label for="facilityFilterBtn">Facility:</label>
+            <div class="multiselect-container">
+                <button type="button" id="facilityFilterBtn" class="form-select filter-select multiselect-btn">All</button>
+                <div id="facilityFilterDropdown" class="multiselect-dropdown">
+                    </div>
+            </div>
         </div>
         <div class="filter-group">
             <label for="buFilter">BU:</label>
             <select id="buFilter" class="form-select filter-select"><option value="">All</option></select>
         </div>
         <div class="filter-group">
-            <label for="soTypeFilter">SO Type:</label>
-            <select id="soTypeFilter" class="form-select filter-select"><option value="">All</option></select>
+            <label for="soTypeFilterBtn">SO Type:</label>
+            <div class="multiselect-container">
+                <button type="button" id="soTypeFilterBtn" class="form-select filter-select multiselect-btn">All</button>
+                <div id="soTypeFilterDropdown" class="multiselect-dropdown">
+                    </div>
+            </div>
         </div>
         <div class="filter-group">
             <label for="customerFilter">Customer:</label>
@@ -372,27 +427,30 @@
                 <th class="sortable" data-column-id="BU" data-type="string">BU<span class="sort-indicator"></span></th>
                 <th class="sortable" data-column-id="SO" data-type="numeric">SO<span class="sort-indicator"></span></th>
                 <th class="sortable" data-column-id="Part" data-type="string">Part<span class="sort-indicator"></span></th>
-                <th class="sortable" data-column-id="Description" data-type="string">Part Description<span class="sort-indicator"></span></th>
                 <th class="sortable" data-column-id="Customer Name" data-type="string">Customer Name<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="Description" data-type="string">Part Description<span class="sort-indicator"></span></th>
                 <th class="sortable numeric" data-column-id="Ord Qty - (00) Level" data-type="numeric">Ord Qty - (00) Level<span class="sort-indicator"></span></th>
                 <th class="sortable numeric" data-column-id="Total Shipped Qty" data-type="numeric">Total Shipped Qty<span class="sort-indicator"></span></th>
                 <th class="sortable numeric" data-column-id="Ord Qty - Cur. Level" data-type="numeric">Ord Qty - Cur. Level<span class="sort-indicator"></span></th>
                 <th class="sortable numeric" data-column-id="Produced Qty" data-type="numeric">Produced Qty<span class="sort-indicator"></span></th>
                 <th class="sortable numeric" data-column-id="On hand Qty" data-type="numeric">On hand Qty<span class="sort-indicator"></span></th>
                 <th class="sortable numeric" data-column-id="Net Qty" data-type="numeric">Net Qty<span class="sort-indicator"></span></th>
-                <th class="sortable" data-column-id="UoM" data-type="string">UoM<span class="sort-indicator"></span></th>
-                <th class="sortable numeric" data-column-id="Qty Per UoM" data-type="numeric">Qty Per UoM<span class="sort-indicator"></span></th>
-                <th class="sortable numeric highlight-purple" data-column-id="Ext Qty" data-type="numeric">Ext Qty<span class="sort-indicator"></span></th>
                 <th class="sortable numeric" data-column-id="ERP Can Make" data-type="numeric">ERP Can Make<span class="sort-indicator"></span></th>
                 <th class="sortable numeric" data-column-id="ERP Low Risk" data-type="numeric">ERP Low Risk<span class="sort-indicator"></span></th>
                 <th class="sortable numeric" data-column-id="ERP High Risk" data-type="numeric">ERP High Risk<span class="sort-indicator"></span></th>
                 <th class="sortable numeric editable-header" data-column-id="No/Low Risk Qty" data-type="numeric">No/Low Risk Qty<span class="sort-indicator"></span></th>
                 <th class="sortable numeric editable-header" data-column-id="High Risk Qty" data-type="numeric">High Risk Qty<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="UoM" data-type="string">UoM<span class="sort-indicator"></span></th>
+                <th class="sortable numeric" data-column-id="Qty Per UoM" data-type="numeric">Qty Per UoM<span class="sort-indicator"></span></th>
+                <th class="sortable numeric highlight-purple" data-column-id="Ext Qty" data-type="numeric">Ext Qty<span class="sort-indicator"></span></th>
                 <th class="sortable numeric" data-column-id="Unit Price" data-type="numeric">Unit Price<span class="sort-indicator"></span></th>
                 <th class="sortable numeric highlight-green" data-column-id="$ No/Low Risk Qty" data-type="numeric">$ No/Low Risk Qty<span class="sort-indicator"></span></th>
                 <th class="sortable numeric highlight-red" data-column-id="$ High Risk" data-type="numeric">$ High Risk<span class="sort-indicator"></span></th>
                 <th class="sortable" data-column-id="Sales Rep" data-type="string">Sales Rep<span class="sort-indicator"></span></th>
                 <th class="sortable" data-column-id="Due to Ship" data-type="date">Due to Ship<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="Requested Date" data-type="date">Requested Date<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="Comp Arrived Date" data-type="date">Comp Arrived Date<span class="sort-indicator"></span></th>
+                <th class="sortable" data-column-id="Ordered Date" data-type="date">Ordered Date<span class="sort-indicator"></span></th>
             </tr>
         </thead>
         <tbody id="schedule-body">
@@ -402,17 +460,14 @@
                 <td data-field="BU">{{ row['BU'] }}</td>
                 <td data-field="SO">{{ row['SO'] }}</td>
                 <td data-field="Part">{{ row['Part'] }}</td>
-                <td data-field="Description">{{ row['Description'] }}</td>
                 <td data-field="Customer Name">{{ row['Customer Name'] }}</td>
+                <td data-field="Description">{{ row['Description'] }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Ord Qty - (00) Level'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Total Shipped Qty'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Ord Qty - Cur. Level'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Produced Qty'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['On hand Qty'] | float) or 0) }}</td>
                 <td class="numeric" data-field="Net Qty">{{ "{:,.2f}".format((row['Net Qty'] | float) or 0) }}</td>
-                <td data-field="UoM">{{ row['UoM'] }}</td>
-                <td class="numeric" data-field="Qty Per UoM">{{ row['Qty Per UoM'] }}</td>
-                <td class="numeric highlight-purple">{{ "{:,.2f}".format((row['Ext Qty'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Can Make - No Risk'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['Low Risk'] | float) or 0) }}</td>
                 <td class="numeric">{{ "{:,.2f}".format((row['High Risk'] | float) or 0) }}</td>
@@ -424,16 +479,22 @@
                     {% if user.is_scheduling_admin %}contenteditable="true"{% endif %}
                     data-risk-type="High Risk Qty" 
                     data-price="{{ row['Unit Price'] }}">{{ "{:,.2f}".format((row['High Risk Qty'] | float) or 0) }}</td>
+                <td data-field="UoM">{{ row['UoM'] }}</td>
+                <td class="numeric" data-field="Qty Per UoM">{{ row['Qty Per UoM'] }}</td>
+                <td class="numeric highlight-purple">{{ "{:,.2f}".format((row['Ext Qty'] | float) or 0) }}</td>
                 <td class="numeric">${{ "%.4f" | format((row['Unit Price'] | float) or 0) }}</td>
                 <td class="numeric highlight-green" data-calculated-for="No/Low Risk Qty">${{ "{:,.2f}".format((row['$ No/Low Risk Qty'] | float) or 0) }}</td>
                 <td class="numeric highlight-red" data-calculated-for="High Risk Qty">${{ "{:,.2f}".format((row['$ High Risk'] | float) or 0) }}</td>
                 <td data-field="Sales Rep">{{ row['Sales Rep'] }}</td>
                 <td data-field="Due to Ship">{{ row['Due to Ship'] or '' }}</td>
+                <td data-field="Requested Date">{{ row['Requested Date'] or '' }}</td>
+                <td data-field="Comp Arrived Date">{{ row['Comp Arrived Date'] or '' }}</td>
+                <td data-field="Ordered Date">{{ row['Ordered Date'] or '' }}</td>
                 <td style="display:none;" data-field="SO Type">{{ row['SO Type'] }}</td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="25" style="text-align: center; padding: 20px;">No scheduling data found.</td>
+                <td colspan="28" style="text-align: center; padding: 20px;">No scheduling data found.</td>
             </tr>
             {% endfor %}
         </tbody>
