@@ -45,6 +45,20 @@ class MRPService:
         component_inventory = self.get_component_inventory()
         finished_good_inventory_data = self.erp.get_on_hand_inventory()
         capacities = {c['line_id']: c['capacity_per_shift'] for c in capacity_db.get_all()}
+        
+        # --- NEW: Fetch open production jobs ---
+        open_jobs = self.erp.get_open_production_jobs()
+        jobs_by_so = {}
+        for job in open_jobs:
+            so_num = str(job.get('so_number'))
+            if so_num:
+                if so_num not in jobs_by_so:
+                    jobs_by_so[so_num] = []
+                jobs_by_so[so_num].append({
+                    "jo_jobnum": job['jo_jobnum'],
+                    "job_quantity": job.get('job_quantity', 0) or 0,
+                    "completed_quantity": job.get('completed_quantity', 0) or 0
+                })
 
         # 2. Pre-process and create lookups
         fg_inventory_map = {
@@ -99,6 +113,7 @@ class MRPService:
         mrp_results = []
         for so in sales_orders:
             part_number = so['Part'].strip()
+            so_number = str(so['SO']) # Ensure so_number is a string for lookup
             ord_qty_curr_level = so.get('Ord Qty - Cur. Level', 0)
 
             fg_inv_static = fg_inventory_map.get(part_number, {'approved': 0, 'pending_qc': 0})
@@ -122,6 +137,28 @@ class MRPService:
             if needed <= 0:
                 mrp_results.append({'sales_order': so, 'components': [], 'bottleneck': 'None', 'can_produce_qty': ord_qty_curr_level, 'status': 'ready-to-ship', 'shifts_required': 0})
                 continue
+                
+            # --- NEW: Step 1.5 - Check if a production job already exists for this SO ---
+            if so_number in jobs_by_so:
+                jobs = jobs_by_so[so_number]
+                bottleneck_text = ""
+                if len(jobs) == 1:
+                    job = jobs[0]
+                    bottleneck_text = f"Job: {job['jo_jobnum']} ({job.get('completed_quantity', 0):,.0f}/{job.get('job_quantity', 0):,.0f})"
+                else:
+                    bottleneck_text = f"{len(jobs)} Jobs Created"
+
+                mrp_results.append({
+                    'sales_order': so,
+                    'components': [],
+                    'bottleneck': bottleneck_text,
+                    'can_produce_qty': fulfilled_from_approved, # Can still ship partial from stock
+                    'status': 'job-created',
+                    'shifts_required': 0,
+                    'job_details': jobs # Pass full details for tooltip
+                })
+                continue
+
 
             # Step 2: Check if remainder can be covered by PENDING QC stock
             available_qc = live_fg_qc.get(part_number, 0)
@@ -133,7 +170,8 @@ class MRPService:
                 bottleneck_text = f"Pending QC (Approved: {fulfilled_from_approved:,.0f}, QC: {so['On Hand Qty Pending QC']:,.0f})"
                 if fulfilled_from_approved > 0:
                     status = 'partial-ship-pending-qc'
-                    bottleneck_text = f"Partial Ship (On-Hand: {fulfilled_from_approved:,.0f}) / QC Hold"
+                    # Use the total static pending QC quantity for consistency.
+                    bottleneck_text = f"Partial Ship (On-Hand: {fulfilled_from_approved:,.0f}) / QC Hold: {so['On Hand Qty Pending QC']:,.0f}"
 
                 mrp_results.append({'sales_order': so, 'components': [], 'bottleneck': bottleneck_text, 'can_produce_qty': fulfilled_from_approved, 'status': status, 'shifts_required': 0})
                 continue
@@ -155,8 +193,11 @@ class MRPService:
                     initial_inv = component_inventory.get(comp_part_num, {'approved': 0, 'pending_qc': 0})
                     inventory_before_this_so = live_component_inventory.get(comp_part_num, 0)
                     pending_qc_qty = initial_inv.get('pending_qc', 0)
-                    open_po_qty = pos_by_part.get(comp_part_num, 0)
-                    available_for_allocation = inventory_before_this_so + pending_qc_qty + open_po_qty
+                    
+                    # Exclude open_po_qty from the primary "Can Produce" calculation.
+                    # It will only consider inventory that is physically on-site (Approved + Pending QC).
+                    available_for_allocation = inventory_before_this_so + pending_qc_qty
+                    
                     max_build_for_comp = available_for_allocation / qty_per_unit
 
                     if max_build_for_comp < final_can_produce_qty:
@@ -199,6 +240,8 @@ class MRPService:
                         allocation_log[comp_part_num].append({ 'so': so['SO'], 'allocated': allocated_for_this_so })
 
                     total_original_need = net_production_qty * qty_per_unit
+                    # The shortfall calculation STILL considers open POs, which is correct.
+                    # This tells the planner if a new PO is needed.
                     available_for_allocation = inventory_before_this_so + initial_inv.get('pending_qc', 0) + open_po_qty
                     shortfall = max(0, total_original_need - available_for_allocation)
                     

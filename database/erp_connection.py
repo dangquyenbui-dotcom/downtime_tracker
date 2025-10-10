@@ -85,7 +85,28 @@ def get_erp_db():
 class ErpService:
     """Contains all business logic for querying the ERP database."""
 
-    # ... (all existing methods like get_raw_material_inventory, get_bom_data, etc. remain here) ...
+    def get_open_production_jobs(self):
+        """
+        Retrieves all open production jobs ('a' type) that are linked to a sales order,
+        including the job's target quantity and its completed quantity.
+        """
+        db = get_erp_db()
+        sql = """
+            SELECT 
+                j.jo_jobnum,
+                (SELECT TOP 1 lj.lj_ordnum FROM dtljob lj WHERE lj.lj_jobnum = j.jo_jobnum ORDER BY lj.lj_linenum) as so_number,
+                (SELECT TOP 1 lj.lj_quant FROM dtljob lj WHERE lj.lj_jobnum = j.jo_jobnum ORDER BY lj.lj_linenum) as job_quantity,
+                (SELECT SUM(ISNULL(j4.j4_quant, 0)) FROM dtjob4 j4 WHERE j4.j4_jobnum = j.jo_jobnum) as completed_quantity
+            FROM 
+                dtjob j
+            WHERE 
+                j.jo_closed IS NULL
+                AND j.jo_type = 'a'
+                AND EXISTS (SELECT 1 FROM dtljob lj WHERE lj.lj_jobnum = j.jo_jobnum AND lj.lj_ordnum IS NOT NULL);
+        """
+        return db.execute_query(sql)
+
+    # ... (all other existing methods like get_raw_material_inventory, get_bom_data, etc. remain here) ...
     def get_raw_material_inventory(self):
         """
         Retrieves all raw material inventory, categorized by status, based on the provided JS logic.
