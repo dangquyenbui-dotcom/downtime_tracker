@@ -71,9 +71,10 @@ class SchedulingDB:
             on_hand_qty = on_hand_map.get(erp_row['Part'], 0) or 0
             erp_row['On hand Qty'] = on_hand_qty
 
-            # 'Net Qty' CALCULATION
-            ord_qty_curr_level = erp_row.get('Ord Qty - Cur. Level', 0) or 0
-            net_qty = ord_qty_curr_level - on_hand_qty
+            # --- MODIFIED: 'Net Qty' CALCULATION ---
+            ord_qty_00_level = erp_row.get('Ord Qty - (00) Level', 0) or 0
+            produced_qty = erp_row.get('Produced Qty', 0) or 0
+            net_qty = ord_qty_00_level - produced_qty
             erp_row['Net Qty'] = net_qty if net_qty > 0 else 0 # Ensure Net Qty is not negative
 
             # Prioritize user-saved projections for editable fields

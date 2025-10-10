@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 1. Populate filters with all possible options from the full dataset first.
     updateFilterOptions(); 
     
-    // 2. Now that all <option> elements exist, restore the saved selections.
+    // 2. Now that all <option> and checkbox elements exist, restore the saved selections.
     restoreFilters();      
     
     // 3. Finally, run the filter to update the grid view based on the restored state.
@@ -26,28 +26,58 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- EVENT LISTENERS ---
 function attachAllEventListeners() {
-    document.getElementById('facilityFilter').addEventListener('change', filterGrid);
+    // Single-select dropdowns
     document.getElementById('buFilter').addEventListener('change', filterGrid);
-    document.getElementById('soTypeFilter').addEventListener('change', filterGrid);
     document.getElementById('customerFilter').addEventListener('change', filterGrid);
     document.getElementById('dueShipFilter').addEventListener('change', filterGrid);
+
+    // Buttons
     document.getElementById('exportBtn').addEventListener('click', exportVisibleDataToXlsx);
     document.getElementById('resetBtn').addEventListener('click', resetFilters);
     document.getElementById('refreshBtn').addEventListener('click', () => {
-        // Save filters before reloading
         saveFilters(); 
         sessionStorage.setItem('wasRefreshed', 'true');
         window.location.reload();
     });
+
+    // Multi-select event listeners
+    setupMultiSelect('facilityFilter');
+    setupMultiSelect('soTypeFilter');
+
     attachEditableListeners(document.getElementById('schedule-body'));
 }
 
+function setupMultiSelect(baseId) {
+    const btn = document.getElementById(`${baseId}Btn`);
+    const dropdown = document.getElementById(`${baseId}Dropdown`);
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Close other dropdowns
+        document.querySelectorAll('.multiselect-dropdown.show').forEach(d => {
+            if (d.id !== dropdown.id) d.classList.remove('show');
+        });
+        dropdown.classList.toggle('show');
+    });
+
+    dropdown.addEventListener('change', (e) => {
+        if (e.target.type === 'checkbox') {
+            updateMultiSelectButtonText(baseId);
+            filterGrid();
+        }
+    });
+}
+
+
 // --- FILTER PERSISTENCE ---
 function saveFilters() {
+    const selectedSoTypes = Array.from(document.querySelectorAll('#soTypeFilterDropdown input:checked')).map(cb => cb.value);
+    const selectedFacilities = Array.from(document.querySelectorAll('#facilityFilterDropdown input:checked')).map(cb => cb.value);
+    
     const filters = {
-        facility: document.getElementById('facilityFilter').value,
+        facility: selectedFacilities,
         bu: document.getElementById('buFilter').value,
-        soType: document.getElementById('soTypeFilter').value,
+        soType: selectedSoTypes,
         customer: document.getElementById('customerFilter').value,
         dueShip: document.getElementById('dueShipFilter').value,
     };
@@ -57,22 +87,41 @@ function saveFilters() {
 function restoreFilters() {
     const savedFilters = JSON.parse(sessionStorage.getItem('schedulingFilters'));
     if (savedFilters) {
-        document.getElementById('facilityFilter').value = savedFilters.facility || '';
         document.getElementById('buFilter').value = savedFilters.bu || '';
-        document.getElementById('soTypeFilter').value = savedFilters.soType || '';
         document.getElementById('customerFilter').value = savedFilters.customer || '';
         document.getElementById('dueShipFilter').value = savedFilters.dueShip || '';
+
+        // Restore SO Type multi-select
+        restoreMultiSelect('soTypeFilter', savedFilters.soType);
+        restoreMultiSelect('facilityFilter', savedFilters.facility);
     }
 }
 
+function restoreMultiSelect(baseId, values) {
+    const dropdown = document.getElementById(`${baseId}Dropdown`);
+    dropdown.querySelectorAll('input').forEach(cb => cb.checked = false);
+    if (values && values.length > 0) {
+        values.forEach(value => {
+            const checkbox = dropdown.querySelector(`input[value="${value}"]`);
+            if (checkbox) checkbox.checked = true;
+        });
+    }
+    updateMultiSelectButtonText(baseId);
+}
+
 function resetFilters() {
-    document.getElementById('facilityFilter').value = '';
     document.getElementById('buFilter').value = '';
-    document.getElementById('soTypeFilter').value = '';
     document.getElementById('customerFilter').value = '';
     document.getElementById('dueShipFilter').value = '';
+    
+    // Reset multi-select filters
+    ['soTypeFilter', 'facilityFilter'].forEach(baseId => {
+        document.querySelectorAll(`#${baseId}Dropdown input:checked`).forEach(cb => cb.checked = false);
+        updateMultiSelectButtonText(baseId);
+    });
+
     sessionStorage.removeItem('schedulingFilters');
-    filterGrid(); // Re-apply the blank filters
+    filterGrid();
 }
 
 
@@ -105,26 +154,20 @@ function calculateTotals() {
 }
 
 function updateForecastCards(totalNoLowRisk, totalHighRisk) {
-    // Helper to parse currency string to float from an element by ID
     const getValueFromCardById = (elementId) => {
         const cardElement = document.getElementById(elementId);
         if (!cardElement) return 0;
         return parseFloat(cardElement.textContent.replace(/[$,]/g, '')) || 0;
     };
 
-    // Get values from the existing 6 cards
     const shippedCurrentMonth = getValueFromCardById('shipped-as-value');
     const fgBefore = getValueFromCardById('fg-on-hand-before');
     const fgCurrent = getValueFromCardById('fg-on-hand-current');
     const fgFuture = getValueFromCardById('fg-on-hand-future');
 
-    // Calculate "Likely" forecast
     const forecastLikelyValue = shippedCurrentMonth + totalNoLowRisk + fgBefore + fgCurrent;
-
-    // Calculate "May Be" forecast
     const forecastMaybeValue = shippedCurrentMonth + totalNoLowRisk + totalHighRisk + fgBefore + fgCurrent + fgFuture;
 
-    // Update the new cards
     document.getElementById('forecast-likely-value').textContent = forecastLikelyValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     document.getElementById('forecast-maybe-value').textContent = forecastMaybeValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
@@ -162,7 +205,6 @@ function populateSelect(selectId, options, addBlankOption = false, selectedValue
         select.appendChild(blankOption);
     }
     
-    // Preserve the selection if it's still a valid option in the new list
     if (selectedValue) {
         const optionExists = Array.from(select.options).some(opt => opt.value === selectedValue);
         if (optionExists) {
@@ -171,17 +213,53 @@ function populateSelect(selectId, options, addBlankOption = false, selectedValue
     }
 }
 
+function populateMultiSelect(baseId, options) {
+    const dropdown = document.getElementById(`${baseId}Dropdown`);
+    if (!dropdown) return;
+
+    const savedValues = Array.from(dropdown.querySelectorAll('input:checked')).map(cb => cb.value);
+    dropdown.innerHTML = '';
+
+    options.forEach(optionText => {
+        if (optionText) {
+            const label = document.createElement('label');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = optionText;
+            if (savedValues.includes(optionText)) {
+                checkbox.checked = true;
+            }
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(' ' + optionText));
+            dropdown.appendChild(label);
+        }
+    });
+}
+
+function updateMultiSelectButtonText(baseId) {
+    const dropdown = document.getElementById(`${baseId}Dropdown`);
+    const selected = Array.from(dropdown.querySelectorAll('input:checked'));
+    const btn = document.getElementById(`${baseId}Btn`);
+    if (selected.length === 0 || selected.length === dropdown.querySelectorAll('input').length) {
+        btn.textContent = 'All';
+    } else if (selected.length === 1) {
+        btn.textContent = selected[0].value;
+    } else {
+        btn.textContent = `${selected.length} selected`;
+    }
+}
+
+
 function updateFilterOptions() {
-    // Get current selections to preserve them
-    const selectedFacility = document.getElementById('facilityFilter').value;
     const selectedBU = document.getElementById('buFilter').value;
-    const selectedSoType = document.getElementById('soTypeFilter').value;
     const selectedCustomer = document.getElementById('customerFilter').value;
     const selectedDueDate = document.getElementById('dueShipFilter').value;
+    
+    const selectedSoTypes = Array.from(document.querySelectorAll('#soTypeFilterDropdown input:checked')).map(cb => cb.value);
+    const selectedFacilities = Array.from(document.querySelectorAll('#facilityFilterDropdown input:checked')).map(cb => cb.value);
 
     const allRows = document.getElementById('schedule-body').querySelectorAll('tr');
     
-    // Temporarily apply filters to determine available options for other dropdowns
     const getOptionsFor = (filterToUpdate) => {
         const options = new Set();
         let hasBlank = false;
@@ -197,9 +275,9 @@ function updateFilterOptions() {
             const dueDateMonthYear = (dueDate && dueDate.includes('/')) ? `${dueDate.split('/')[0].padStart(2, '0')}/${dueDate.split('/')[2]}` : 'Blank';
 
             let matches = true;
-            if (filterToUpdate !== 'facility' && selectedFacility && facility !== selectedFacility) matches = false;
+            if (filterToUpdate !== 'facility' && selectedFacilities.length > 0 && !selectedFacilities.includes(facility)) matches = false;
             if (filterToUpdate !== 'bu' && selectedBU && bu !== selectedBU) matches = false;
-            if (filterToUpdate !== 'soType' && selectedSoType && soType !== selectedSoType) matches = false;
+            if (filterToUpdate !== 'soType' && selectedSoTypes.length > 0 && !selectedSoTypes.includes(soType)) matches = false;
             if (filterToUpdate !== 'customer' && selectedCustomer && customer !== selectedCustomer) matches = false;
             if (filterToUpdate !== 'dueShip' && selectedDueDate) {
                 if (selectedDueDate === 'Blank' && dueDate !== '') matches = false;
@@ -234,17 +312,20 @@ function updateFilterOptions() {
         return new Date(aYear, aMonth - 1) - new Date(bYear, bMonth - 1);
     });
 
-    populateSelect('facilityFilter', facilityOpts.options, false, selectedFacility);
+    populateMultiSelect('facilityFilter', facilityOpts.options);
     populateSelect('buFilter', buOpts.options, false, selectedBU);
-    populateSelect('soTypeFilter', soTypeOpts.options, false, selectedSoType);
+    populateMultiSelect('soTypeFilter', soTypeOpts.options, selectedSoTypes);
     populateSelect('customerFilter', customerOpts.options, false, selectedCustomer);
     populateSelect('dueShipFilter', sortedDueDates, dueDateOpts.hasBlank, selectedDueDate);
+    
+    updateMultiSelectButtonText('facilityFilter');
+    updateMultiSelectButtonText('soTypeFilter');
 }
 
 function filterGrid() {
-    const facilityFilter = document.getElementById('facilityFilter').value;
+    const facilityFilter = Array.from(document.querySelectorAll('#facilityFilterDropdown input:checked')).map(cb => cb.value);
     const buFilter = document.getElementById('buFilter').value;
-    const soTypeFilter = document.getElementById('soTypeFilter').value;
+    const soTypeFilter = Array.from(document.querySelectorAll('#soTypeFilterDropdown input:checked')).map(cb => cb.value);
     const customerFilter = document.getElementById('customerFilter').value;
     const dueShipFilter = document.getElementById('dueShipFilter').value;
 
@@ -257,9 +338,9 @@ function filterGrid() {
         const dueDate = row.querySelector('[data-field="Due to Ship"]')?.textContent.trim() || '';
         
         let show = true;
-        if (facilityFilter && facility !== facilityFilter) show = false;
+        if (facilityFilter.length > 0 && !facilityFilter.includes(facility)) show = false;
         if (buFilter && bu !== buFilter) show = false;
-        if (soTypeFilter && soType !== soTypeFilter) show = false;
+        if (soTypeFilter.length > 0 && !soTypeFilter.includes(soType)) show = false;
         if (customerFilter && customer !== customerFilter) show = false;
         
         if (dueShipFilter) {
@@ -279,8 +360,7 @@ function filterGrid() {
         row.classList.toggle('hidden-row', !show);
     });
     
-    // After filtering rows, update everything else.
-    saveFilters(); // Save the current filter state
+    saveFilters();
     updateFilterOptions();
     updateRowCount();
     calculateTotals();
@@ -295,24 +375,21 @@ function initializeColumnToggle() {
     const headers = document.querySelectorAll('.grid-table thead th');
     let savedConfig = JSON.parse(localStorage.getItem(COLUMNS_CONFIG_KEY));
 
-    // Default configuration if nothing is saved
     if (!savedConfig) {
         savedConfig = {};
         headers.forEach(th => {
             const id = th.dataset.columnId;
             if (id) {
-                // MODIFIED: Added new columns to the default hidden list
                 const defaultHidden = ['Ord Qty - (00) Level', 'Total Shipped Qty', 'Produced Qty', 'ERP Can Make', 'ERP Low Risk', 'ERP High Risk', 'Unit Price', 'Qty Per UoM', 'Sales Rep'];
                 savedConfig[id] = !defaultHidden.includes(id);
             }
         });
     }
     
-    // Populate dropdown and set listeners
     headers.forEach(th => {
         const id = th.dataset.columnId;
         if (id) {
-            const isVisible = savedConfig[id] !== false; // Default to visible if not specified
+            const isVisible = savedConfig[id] !== false;
             const label = document.createElement('label');
             label.innerHTML = `<input type="checkbox" data-column-id="${id}" ${isVisible ? 'checked' : ''}> ${id}`;
             dropdown.appendChild(label);
@@ -357,9 +434,7 @@ function applyColumnVisibility(config) {
 
         if (headerIndex > -1) {
             const displayStyle = isVisible ? '' : 'none';
-            // Toggle header
             table.querySelector(`th[data-column-id="${columnId}"]`).style.display = displayStyle;
-            // Toggle all cells in that column
             table.querySelectorAll(`tbody tr`).forEach(row => {
                 if (row.cells[headerIndex]) {
                     row.cells[headerIndex].style.display = displayStyle;
@@ -372,7 +447,7 @@ function applyColumnVisibility(config) {
 // --- NEW: SORTING LOGIC ---
 let sortState = {
     column: null,
-    direction: 'none' // 'asc', 'desc', 'none'
+    direction: 'none'
 };
 
 function initializeSorting() {
@@ -413,10 +488,10 @@ function updateSortIndicators() {
         if (th.dataset.columnId === sortState.column) {
             if (sortState.direction === 'asc') {
                 th.classList.add('sorted-asc');
-                indicator.textContent = '▲';
+                indicator.textContent = '↑';
             } else if (sortState.direction === 'desc') {
                 th.classList.add('sorted-desc');
-                indicator.textContent = '▼';
+                indicator.textContent = '↓';
             }
         }
     });
@@ -430,10 +505,10 @@ function getSortValue(cell, type) {
         case 'numeric':
             return parseFloat(text.replace(/[$,]/g, '')) || 0;
         case 'date':
-            if (!text || !text.includes('/')) return new Date(0); // Put empty dates at the beginning
-            const parts = text.split('/'); // MM/DD/YY
+            if (!text || !text.includes('/')) return new Date(0);
+            const parts = text.split('/');
             return new Date(`20${parts[2]}`, parts[0] - 1, parts[1]);
-        default: // string
+        default:
             return text.toLowerCase();
     }
 }
@@ -459,7 +534,6 @@ function sortTable(columnIndex, columnType, direction) {
     tbody.innerHTML = '';
     rows.forEach(row => tbody.appendChild(row));
     
-    // Re-attach listeners to editable cells as sorting rebuilds the table body
     attachEditableListeners(tbody);
 }
 
@@ -470,12 +544,10 @@ function validateAllRows() {
 }
 
 function validateRow(row) {
-    // Clear previous warnings
     row.classList.remove('row-warning');
     const existingFix = row.querySelector('.suggestion-fix');
     if (existingFix) existingFix.remove();
 
-    // Get values
     const netQtyCell = row.querySelector('[data-field="Net Qty"]');
     const noLowRiskCell = row.querySelector('[data-risk-type="No/Low Risk Qty"]');
     const highRiskCell = row.querySelector('[data-risk-type="High Risk Qty"]');
@@ -489,23 +561,19 @@ function validateRow(row) {
     const totalProjected = noLowRiskQty + highRiskQty;
     const difference = totalProjected - netQty;
 
-    // Check if the difference is significant (handles floating point inaccuracies)
     if (Math.abs(difference) > 0.01) {
         row.classList.add('row-warning');
-
-        // Suggest a fix by adjusting the No/Low Risk Qty
         const suggestedNoLowRisk = Math.max(0, noLowRiskQty - difference);
-
         const fixButton = document.createElement('button');
         fixButton.textContent = 'Fix';
         fixButton.dataset.suggestion = suggestedNoLowRisk;
         fixButton.onclick = function() { applySuggestion(this); };
 
-        if (difference < 0) { // SHORTFALL
+        if (difference < 0) {
             fixButton.className = 'suggestion-fix fix-shortfall';
             fixButton.title = `SHORTFALL: Suggest setting No/Low Risk to ${suggestedNoLowRisk.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} to match Net Qty`;
             noLowRiskCell.appendChild(fixButton);
-        } else { // SURPLUS
+        } else {
             fixButton.className = 'suggestion-fix fix-surplus';
             fixButton.title = `SURPLUS: Suggest setting No/Low Risk to ${suggestedNoLowRisk.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} to match Net Qty`;
             noLowRiskCell.appendChild(fixButton);
@@ -519,16 +587,12 @@ function applySuggestion(buttonElement) {
     const cell = buttonElement.closest('td');
 
     if (cell) {
-        // Store the original value before changing it, for error recovery
         const originalValue = cell.getAttribute('data-original-value') || '0';
-
-        // 1. Visually update the cell and add a saving indicator
         cell.textContent = suggestion.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const statusIndicator = document.createElement('span');
         statusIndicator.className = 'status-indicator saving';
         cell.appendChild(statusIndicator);
 
-        // 2. Gather data for the API call
         const row = cell.closest('tr');
         const soNumber = row.dataset.soNumber;
         const partNumber = row.dataset.partNumber;
@@ -536,7 +600,6 @@ function applySuggestion(buttonElement) {
         const price = parseFloat(cell.dataset.price) || 0;
         const payload = { so_number: soNumber, part_number: partNumber, risk_type: riskType, quantity: suggestion };
 
-        // 3. Make the API call to save the data
         fetch('/scheduling/api/update-projection', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -548,18 +611,16 @@ function applySuggestion(buttonElement) {
         })
         .then(data => {
             if (data.success) {
-                // On success, update UI elements
                 statusIndicator.className = 'status-indicator success';
                 cell.setAttribute('data-original-value', suggestion.toString());
-
                 const calculatedCell = row.querySelector(`[data-calculated-for="${riskType}"]`);
                 if (calculatedCell) {
                     const newDollarValue = suggestion * price;
                     calculatedCell.textContent = newDollarValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
                 }
                 
-                calculateTotals(); // Update summary cards
-                validateRow(row); // Re-validate to remove the 'Fix' button
+                calculateTotals();
+                validateRow(row);
                 
                 setTimeout(() => { statusIndicator.remove(); }, 2000);
             } else {
@@ -567,15 +628,10 @@ function applySuggestion(buttonElement) {
             }
         })
         .catch(error => {
-            // On failure, revert the change and show an error
             console.error('Save Error:', error);
             dtUtils.showAlert(`Save failed: ${error.message}`, 'error');
-            
-            // Revert visual change
             cell.textContent = (parseFloat(originalValue) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             statusIndicator.className = 'status-indicator error';
-            
-            // Re-run validation to bring the 'Fix' button back
             validateRow(row);
         });
     }
@@ -604,7 +660,6 @@ function handleCellBlur() {
     const quantity = parseFloat(newValue);
     el.textContent = quantity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     
-    // Re-validate the row after editing
     validateRow(el.closest('tr'));
 
     if (Math.abs(parseFloat(originalValue) - quantity) < 0.001) return;
@@ -660,7 +715,6 @@ function handleCellBlur() {
 function handleCellFocus(e) {
     const cleanValue = e.target.textContent.trim().replace(/[$,]/g, '');
     e.target.setAttribute('data-original-value', cleanValue);
-    // Remove suggestion button on focus for easier editing
     e.target.querySelectorAll('.suggestion-fix').forEach(btn => btn.remove());
 }
 
@@ -676,14 +730,13 @@ function exportVisibleDataToXlsx() {
     exportBtn.textContent = '📥 Generating...';
 
     const headers = Array.from(document.querySelectorAll('.grid-table thead th'))
-        .filter(th => th.style.display !== 'none') // Only include visible headers
+        .filter(th => th.style.display !== 'none')
         .map(th => th.textContent.trim());
 
     const rows = [];
     document.querySelectorAll('#schedule-body tr:not(.hidden-row)').forEach(row => {
         const rowData = [];
         row.querySelectorAll('td').forEach(cell => {
-            // Exclude hidden columns and the hidden "SO Type" column from the export
             if (cell.style.display !== 'none' && cell.getAttribute('data-field') !== 'SO Type') {
                 rowData.push(cell.textContent.trim());
             }
