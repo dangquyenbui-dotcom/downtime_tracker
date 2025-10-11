@@ -1,4 +1,4 @@
-# dangquyenbui-dotcom/production_portal_dev/production_portal_DEV-35c5b2d7d65c0b0de1b2129d9ecd46a5ad103507/database/mrp_service.py
+# dangquyenbui-dotcom/production_portal_dev/production_portal_DEV-1d426cd38b2291765ba776ab12103b173b271ab9/database/mrp_service.py
 """
 MRP (Material Requirements Planning) Service
 This service contains the core logic for calculating production suggestions.
@@ -119,6 +119,21 @@ class MRPService:
             so['On Hand Qty Approved'] = fg_inv_static.get('approved', 0)
             so['On Hand Qty Pending QC'] = fg_inv_static.get('pending_qc', 0)
             
+            is_job_created = False
+            job_details_for_so = None
+            bottleneck_text_for_job = None
+            
+            if so_number in jobs_by_so:
+                is_job_created = True
+                jobs = jobs_by_so[so_number]
+                job_details_for_so = jobs
+                if len(jobs) == 1:
+                    job = jobs[0]
+                    bottleneck_text_for_job = f"Job: {job['jo_jobnum']} ({job.get('completed_quantity', 0):,.0f}/{job.get('job_quantity', 0):,.0f})"
+                else:
+                    job_numbers = ', '.join([str(j['jo_jobnum']) for j in jobs])
+                    bottleneck_text_for_job = f"Jobs: {job_numbers}"
+
             needed = ord_qty_curr_level
             
             available_approved = live_fg_approved.get(part_number, 0)
@@ -132,24 +147,11 @@ class MRPService:
             so['Net Qty'] = needed if needed > 0 else 0
 
             if needed <= 0:
-                mrp_results.append({'sales_order': so, 'components': [], 'bottleneck': 'None', 'can_produce_qty': ord_qty_curr_level, 'status': 'ready-to-ship', 'shifts_required': 0})
-                continue
-                
-            if so_number in jobs_by_so:
-                jobs = jobs_by_so[so_number]
-                bottleneck_text = f"{len(jobs)} Jobs Created"
-                if len(jobs) == 1:
-                    job = jobs[0]
-                    bottleneck_text = f"Job: {job['jo_jobnum']} ({job.get('completed_quantity', 0):,.0f}/{job.get('job_quantity', 0):,.0f})"
-                
                 mrp_results.append({
-                    'sales_order': so,
-                    'components': [],
-                    'bottleneck': bottleneck_text,
-                    'can_produce_qty': fulfilled_from_approved,
-                    'status': 'job-created',
-                    'shifts_required': 0,
-                    'job_details': jobs
+                    'sales_order': so, 'components': [], 'bottleneck': 'None', 
+                    'can_produce_qty': ord_qty_curr_level, 'status': 'ready-to-ship', 
+                    'shifts_required': 0, 'shippable_qty': fulfilled_from_approved, 'producible_qty': 0,
+                    'material_status': 'ready-to-ship'
                 })
                 continue
 
@@ -161,16 +163,26 @@ class MRPService:
                 status = 'pending-qc'
                 bottleneck_text = f"Pending QC Hold: {so['On Hand Qty Pending QC']:,.0f}"
 
-                mrp_results.append({'sales_order': so, 'components': [], 'bottleneck': bottleneck_text, 'can_produce_qty': fulfilled_from_approved, 'status': status, 'shifts_required': 0})
+                mrp_results.append({
+                    'sales_order': so, 'components': [], 'bottleneck': bottleneck_text, 
+                    'can_produce_qty': fulfilled_from_approved, 'status': status, 
+                    'shifts_required': 0, 'shippable_qty': fulfilled_from_approved, 'producible_qty': 0,
+                    'material_status': 'pending-qc'
+                })
                 continue
 
             net_production_qty = needed
             
             final_can_produce_qty = float('inf')
-            bottleneck = None
             bom_components = boms_by_parent.get(part_number, [])
-
-            if bom_components:
+            bottleneck_parts = []
+            
+            if not bom_components:
+                final_can_produce_qty = 0
+                bottleneck = "No BOM Found"
+                prod_status = 'critical'
+            else:
+                component_build_calcs = []
                 for component in bom_components:
                     comp_part_num = component['Part Number'].strip()
                     qty_per_unit = component['Quantity'] * (1 + (component.get('Scrap %', 0) / 100))
@@ -179,35 +191,29 @@ class MRPService:
                     initial_inv = component_inventory.get(comp_part_num, {'approved': 0, 'pending_qc': 0})
                     inventory_before_this_so = live_component_inventory.get(comp_part_num, 0)
                     pending_qc_qty = initial_inv.get('pending_qc', 0)
+                    available_for_build = inventory_before_this_so + pending_qc_qty
+                    max_build_for_comp = available_for_build / qty_per_unit
                     
-                    available_for_allocation = inventory_before_this_so + pending_qc_qty
-                    
-                    max_build_for_comp = available_for_allocation / qty_per_unit
+                    component_build_calcs.append({'part': comp_part_num, 'max_build': max_build_for_comp})
+                    final_can_produce_qty = min(final_can_produce_qty, max_build_for_comp)
 
-                    if max_build_for_comp < final_can_produce_qty:
-                        final_can_produce_qty = max_build_for_comp
-                        bottleneck = comp_part_num # Temporarily set the primary bottleneck
-            elif not bom_components:
-                final_can_produce_qty = 0
-                bottleneck = "No BOM Found"
-            
-            if final_can_produce_qty == float('inf'):
-                final_can_produce_qty = net_production_qty
-            final_can_produce_qty = min(final_can_produce_qty, net_production_qty)
+                final_can_produce_qty = min(final_can_produce_qty, net_production_qty)
 
-            if final_can_produce_qty >= net_production_qty:
-                bottleneck = "Full Production Ready - Create job now"
-                prod_status = 'ok'
-            else:
-                prod_status = 'partial' if final_can_produce_qty > 0 else 'critical'
+                for calc in component_build_calcs:
+                    if calc['max_build'] < net_production_qty:
+                        bottleneck_parts.append(calc['part'])
+
+                if final_can_produce_qty >= net_production_qty:
+                    prod_status = 'ok'
+                    bottleneck = "Full Production Ready - Create job now"
+                else:
+                    prod_status = 'partial' if final_can_produce_qty > 0 else 'critical'
+                    bottleneck = "Material Shortage"
 
             if fulfilled_from_approved > 0:
                 prod_status = 'partial-ship'
-                bottleneck = f"Partial Ship: {fulfilled_from_approved:,.0f} / Prod. Needed: {net_production_qty:,.0f}"
 
             component_details = []
-            bottleneck_parts = [] # *** NEW: List to hold all parts with shortfalls ***
-
             if bom_components:
                 for component in bom_components:
                     comp_part_num = component['Part Number'].strip()
@@ -229,12 +235,8 @@ class MRPService:
                         allocation_log[comp_part_num].append({ 'so': so['SO'], 'allocated': allocated_for_this_so })
 
                     total_original_need = net_production_qty * qty_per_unit
-                    available_for_allocation = inventory_before_this_so + initial_inv.get('pending_qc', 0) + open_po_qty
-                    shortfall = max(0, total_original_need - available_for_allocation)
-                    
-                    # *** NEW: Identify all parts with a shortfall ***
-                    if shortfall > 0:
-                        bottleneck_parts.append(comp_part_num)
+                    available_for_allocation_with_po = inventory_before_this_so + initial_inv.get('pending_qc', 0) + open_po_qty
+                    shortfall = max(0, total_original_need - available_for_allocation_with_po)
 
                     shared_with_so_details = []
                     total_allocated_to_others = 0
@@ -256,18 +258,33 @@ class MRPService:
                         'shortfall': shortfall
                     })
             
-            # *** NEW: Override bottleneck text if it's a partial production ***
-            if prod_status == 'partial' and bottleneck_parts:
-                bottleneck = f"Partial Production Ready - {', '.join(bottleneck_parts)}"
+            if 'No BOM Found' not in bottleneck:
+                if prod_status == 'partial':
+                    producible_formatted = f"{final_can_produce_qty:,.0f}"
+                    bottleneck = f"Partial Production Ready - Producible: {producible_formatted} - {', '.join(bottleneck_parts)}"
+                elif prod_status == 'critical':
+                    bottleneck = f"Critical Shortage - {', '.join(bottleneck_parts)}"
+
+            if is_job_created:
+                bottleneck = f"{bottleneck_text_for_job} - {', '.join(bottleneck_parts)}" if bottleneck_parts else bottleneck_text_for_job
+            
+            if prod_status == 'partial-ship':
+                 bottleneck = f"Partial Ship: {fulfilled_from_approved:,.0f} / Prod. Needed: {net_production_qty:,.0f} / Producible: {final_can_produce_qty:,.0f}"
+
+            final_status = 'job-created' if is_job_created else prod_status
 
             so_result = {
                 'sales_order': so, 
                 'components': component_details, 
                 'bottleneck': bottleneck,
-                'bottleneck_parts': bottleneck_parts, # Pass the list for highlighting
+                'bottleneck_parts': bottleneck_parts,
                 'can_produce_qty': fulfilled_from_approved + final_can_produce_qty,
                 'shifts_required': 0, 
-                'status': prod_status
+                'status': final_status,
+                'material_status': prod_status,
+                'job_details': job_details_for_so,
+                'shippable_qty': fulfilled_from_approved,
+                'producible_qty': final_can_produce_qty
             }
 
             if capacities:

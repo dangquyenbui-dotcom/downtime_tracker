@@ -1,7 +1,9 @@
-// static/js/mrp.js
+// dangquyenbui-dotcom/production_portal_dev/production_portal_DEV-1d426cd38b2291765ba776ab12103b173b271ab9/static/js/mrp.js
 document.addEventListener('DOMContentLoaded', function() {
-    initializeFilters();
-    restoreFilters(); // Restore filters before attaching listeners or filtering
+    
+    // --- INITIALIZATION ---
+    initializeFilters(); // Set up column toggling first
+    restoreFilters();      // Restore filters before attaching listeners or filtering
     attachAllEventListeners();
     
     // Set and apply initial sort by Sales Order, ascending
@@ -193,48 +195,40 @@ function filterMRP() {
         }
         
         if (statusFilter) {
-            if (statusFilter === 'ready-to-ship' && status !== 'ready-to-ship') {
-                show = false;
-            } else if (statusFilter === 'production-needed' && !['ok', 'partial', 'partial-ship'].includes(status)) {
-                show = false;
-            } else if (statusFilter === 'action-required' && !['critical', 'pending-qc'].includes(status)) {
-                show = false;
-            } else if (!['ready-to-ship', 'production-needed', 'action-required'].includes(statusFilter) && status !== statusFilter) {
+            let matchesStatus = false;
+            const productionNeededStatuses = ['ok', 'partial', 'partial-ship', 'job-created'];
+            const actionRequiredStatuses = ['critical', 'pending-qc'];
+
+            if (statusFilter === 'ready-to-ship') {
+                if (status === 'ready-to-ship') matchesStatus = true;
+            } else if (statusFilter === 'production-needed') {
+                if (productionNeededStatuses.includes(status)) matchesStatus = true;
+            } else if (statusFilter === 'action-required') {
+                if (actionRequiredStatuses.includes(status)) matchesStatus = true;
+            }
+            
+            if (!matchesStatus) {
                 show = false;
             }
         }
-
 
         header.classList.toggle('hidden-row', !show);
         
         if(show) {
             visibleCount++;
+            // Count statuses for the summary cards ONLY for visible rows
             switch(status) {
-                case 'ready-to-ship':
-                    readyToShipCount++;
-                    break;
-                case 'pending-qc':
-                    pendingQCCount++;
-                    break;
-                case 'job-created':
-                    jobCreatedCount++;
-                    break;
-                case 'ok':
-                    okCount++;
-                    break;
-                case 'partial-ship': 
-                    partialShipmentCount++;
-                    break;
-                case 'partial':
-                    partialCount++;
-                    break;
-                case 'critical':
-                    criticalCount++;
-                    break;
+                case 'ready-to-ship': readyToShipCount++; break;
+                case 'pending-qc': pendingQCCount++; break;
+                case 'job-created': jobCreatedCount++; break;
+                case 'ok': okCount++; break;
+                case 'partial-ship': partialShipmentCount++; break;
+                case 'partial': partialCount++; break;
+                case 'critical': criticalCount++; break;
             }
         }
     });
-
+    
     updateSummaryCards(visibleCount, readyToShipCount, pendingQCCount, okCount, partialCount, criticalCount, jobCreatedCount, partialShipmentCount);
     updateRowCount();
     saveFilters();
@@ -362,7 +356,7 @@ function exportVisibleDataToXlsx() {
             fg: header.querySelector('.so-info:nth-child(3) strong').textContent.trim(),
             required: header.querySelector('.so-info:nth-child(5) strong').textContent.trim(),
             canProduce: header.querySelector('.so-info:nth-child(6) strong').textContent.trim(),
-            bottleneck: header.querySelector('.so-info:nth-child(7) div').textContent.trim(),
+            bottleneck: header.querySelector('.so-info:nth-child(7) div').getAttribute('title') || header.querySelector('.so-info:nth-child(7) div').textContent.trim(),
         };
 
         const detailsId = header.dataset.target;
