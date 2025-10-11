@@ -137,13 +137,20 @@
     }
     .so-header:hover:not(.no-expand) { background-color: var(--bg-hover); }
     .so-header.hidden-row { display: none; }
-    .so-header.status-ready-to-ship { border-left: 5px solid var(--accent-green); }
-    .so-header.status-pending-qc { border-left: 5px solid var(--accent-purple); }
-    .so-header.status-partial-ship { border-left: 5px solid var(--accent-orange); }
-    .so-header.status-ok { border-left: 5px solid var(--accent-green); }
-    .so-header.status-partial { border-left: 5px solid var(--accent-orange); }
-    .so-header.status-critical { border-left: 5px solid var(--accent-red); }
-    .so-header.status-job-created { border-left: 5px solid #38B2AC; }
+    
+    .so-header.highlight-ok { border-left: 5px solid var(--accent-green); }
+    .so-header.highlight-ready-to-ship { border-left: 5px solid var(--accent-green); }
+    .so-header.highlight-pending-qc { border-left: 5px solid var(--accent-purple); }
+    .so-header.highlight-job-created { border-left: 5px solid #38B2AC; }
+    .so-header.highlight-partial-ship, .so-header.highlight-partial { border-left: 5px solid var(--accent-orange); }
+    .so-header.highlight-critical { border-left: 5px solid var(--accent-red); }
+
+    .so-header.highlight-partial { background-color: var(--alert-warning-bg); }
+    .so-header.highlight-critical { background-color: var(--alert-error-bg); }
+
+    [data-theme="dark"] .so-header.highlight-partial { background-color: rgba(246, 173, 85, 0.1); }
+    [data-theme="dark"] .so-header.highlight-critical { background-color: rgba(252, 129, 129, 0.1); }
+
 
     .so-info { font-size: 14px; }
     .so-info label { font-size: 11px; color: var(--text-tertiary); display: block; text-transform: uppercase; }
@@ -325,11 +332,14 @@
     {% for result in mrp_results %}
         {% set so = result.sales_order %}
         {% set status = result.status %}
+        {% set material_status = result.material_status or status %}
         {% set has_components = result.components|length > 0 %}
-        {% set expand_class = 'no-expand' if status in ['ready-to-ship', 'pending-qc', 'job-created'] or not has_components else '' %}
+        {% set expand_class = 'no-expand' if status in ['ready-to-ship', 'pending-qc'] or not has_components else '' %}
         {% set unique_id = so.SO ~ '-' ~ so.Part|replace('.', '-') %}
+        {% set shippable_qty_formatted = "{:,.0f}".format(result.shippable_qty|float) %}
+        {% set producible_qty_formatted = "{:,.0f}".format(result.producible_qty|float) %}
 
-        <div class="so-header status-{{ status }} {{ expand_class }}"
+        <div class="so-header highlight-{{ material_status }} {{ expand_class }}"
              data-target="so-{{ unique_id }}"
              data-facility="{{ so.Facility }}"
              data-bu="{{ so.BU }}"
@@ -342,29 +352,46 @@
             <div class="so-info" title="{{ so['Customer Name'] }}"><strong>{{ so['Customer Name'] }}</strong></div>
             <div class="so-info"><strong>{{ so.Part }}</strong></div>
             <div class="so-info"><strong>{{ (so['Due to Ship'] | date_i18n) if so['Due to Ship'] else 'N/A' }}</strong></div>
-            <div class="so-info numeric" title="Outstanding Qty to Produce: {{ '{:,.0f}'.format(so['Net Qty']) }}"><strong>{{ "{:,.0f}".format(so['Ord Qty - Cur. Level']) }}</strong></div>
-            <div class="so-info numeric"><strong style="font-size: 1.3em;">{{ "{:,.0f}".format(result.can_produce_qty) }}</strong></div>
+            <div class="so-info numeric" title="Required: {{ '{:,.0f}'.format(so['Ord Qty - Cur. Level']) }}\nOn-Hand FG: {{ '{:,.0f}'.format(so['On Hand Qty Approved']) }}\nNet to Produce: {{ '{:,.0f}'.format(so['Net Qty']) }}"><strong>{{ "{:,.0f}".format(so['Ord Qty - Cur. Level']) }}</strong></div>
+            <div class="so-info numeric" title="Shippable from Stock: {{ shippable_qty_formatted }}\nProducible from Components: {{ producible_qty_formatted }}">
+                <strong style="font-size: 1.3em;">{{ "{:,.0f}".format(result.can_produce_qty) }}</strong>
+            </div>
             
             <div class="so-info">
                 {% if status == 'job-created' %}
                     {% set jobs = result.job_details %}
+                    {% set display_text = result.bottleneck %}
+                    {% set tooltip_text = '' %}
+
+                    {# Build detailed tooltip for multiple jobs #}
                     {% if jobs and jobs|length > 1 %}
+                        {% set job_numbers_display = [] %}
+                        {% for j in jobs %}{% set _ = job_numbers_display.append(j.jo_jobnum) %}{% endfor %}
+                        {% set display_text = 'Jobs: ' ~ job_numbers_display|join(', ') %}
+
                         {% set tooltip_lines = [] %}
                         {% for job in jobs %}
                             {% set completed = '{:,.0f}'.format(job.completed_quantity|float) %}
                             {% set target = '{:,.0f}'.format(job.job_quantity|float) %}
                             {% set _ = tooltip_lines.append('Job ' ~ job.jo_jobnum ~ ': ' ~ completed ~ ' / ' ~ target) %}
                         {% endfor %}
-                        <div class="job-created-tag" title="{{ tooltip_lines|join('\n') }}">{{ result.bottleneck }}</div>
+                        {% set tooltip_text = tooltip_lines|join('\n') %}
+                        {% if result.bottleneck_parts %}
+                            {% set bottleneck_str = result.bottleneck_parts|join(', ') %}
+                            {% set display_text = display_text ~ ' - ' ~ bottleneck_str %}
+                            {% set tooltip_text = tooltip_text ~ '\nShortages: ' ~ bottleneck_str %}
+                        {% endif %}
                     {% else %}
-                        <div class="job-created-tag">{{ result.bottleneck }}</div>
+                        {# For single jobs, the full text is the tooltip #}
+                        {% set tooltip_text = result.bottleneck %}
                     {% endif %}
+                    <div class="job-created-tag" title="{{ tooltip_text }}">{{ display_text }}</div>
                 {% elif status == 'ready-to-ship' %}
-                    <div class="ready-to-ship">Ready to Ship (On-Hand: {{ "{:,.0f}".format(so['On Hand Qty Approved']) }})</div>
+                    <div class="ready-to-ship" title="Can be fulfilled from existing on-hand stock of {{ "{:,.0f}".format(so['On Hand Qty Approved']) }} units.">Ready to Ship</div>
                 {% elif status == 'pending-qc' %}
-                    <div class="pending-qc-tag">{{ result.bottleneck }}</div>
+                    <div class="pending-qc-tag" title="Sufficient quantity is in inventory but awaiting QC approval.">{{ result.bottleneck }}</div>
                 {% elif status == 'partial-ship' %}
-                    <div class="bottleneck-tag partial-ship-tag">{{ result.bottleneck }}</div>
+                    <div class="bottleneck-tag partial-ship-tag" title="Shippable: {{ shippable_qty_formatted }}, Needed: {{ '{:,.0f}'.format(so['Net Qty']) }}, Producible: {{ producible_qty_formatted }}">{{ result.bottleneck }}</div>
                 {% else %}
                     {% set bottleneck_class = 'no-bottleneck' if status == 'ok' else 'bottleneck' %}
                     <div class="bottleneck-tag {{ bottleneck_class }}">{{ result.bottleneck or 'None' }}</div>
