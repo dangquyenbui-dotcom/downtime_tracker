@@ -15,8 +15,9 @@ from .users import UsersDB
 from .sessions import SessionsDB
 from .reports import reports_db
 from .scheduling import scheduling_db
-from .capacity import ProductionCapacityDB # Add this import
+from .capacity import ProductionCapacityDB
 from .mrp_service import mrp_service
+from .sales_service import sales_service # <-- ADD THIS IMPORT
 
 # Create singleton instances
 facilities_db = FacilitiesDB()
@@ -27,7 +28,7 @@ audit_db = AuditDB()
 shifts_db = ShiftsDB()
 users_db = UsersDB()
 sessions_db = SessionsDB()
-capacity_db = ProductionCapacityDB() # Add this instance
+capacity_db = ProductionCapacityDB() 
 
 # Export main database functions
 __all__ = [
@@ -43,6 +44,7 @@ __all__ = [
     'sessions_db',
     'reports_db',
     'scheduling_db',
-    'capacity_db', # Add this export
-    'mrp_service'
+    'capacity_db',
+    'mrp_service',
+    'sales_service' # <-- ADD THIS
 ]
