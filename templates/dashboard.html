@@ -363,6 +363,15 @@
         <div class="action-desc">View production suggestions based on material availability.</div>
     </a>
     {% endif %}
+
+    {# NEW: MRP Customer Summary Card #}
+    {% if user.is_admin or user.is_scheduling_admin or user.is_scheduling_user %}
+    <a href="{{ url_for('mrp.customer_summary') }}" class="action-card admin">
+        <div class="action-icon">📈</div>
+        <div class="action-title">MRP Customer Summary</div>
+        <div class="action-desc">View order status and shortages by customer.</div>
+    </a>
+    {% endif %}
     
     {# Report Downtime: For DowntimeTracker_Admin and DowntimeTracker_User #}
     {% if user.is_admin or user.is_user %}

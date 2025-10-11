@@ -31,6 +31,17 @@
     .actions-container {
         display: flex;
         gap: 10px;
+        margin-left: auto; /* Pushes actions to the right */
+    }
+    .refresh-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .last-updated {
+        font-size: 12px;
+        color: var(--text-tertiary);
+        white-space: nowrap;
     }
     .filter-group {
         display: flex;
@@ -248,6 +259,10 @@
             <select id="customerFilter" class="form-select filter-select"><option value="">All</option></select>
         </div>
         <div class="filter-group">
+            <label for="fgFilter">FG:</label>
+            <select id="fgFilter" class="form-select filter-select"><option value="">All</option></select>
+        </div>
+        <div class="filter-group">
             <label for="dueShipFilter">Due to Ship:</label>
             <select id="dueShipFilter" class="form-select filter-select"><option value="">All</option></select>
         </div>
@@ -263,8 +278,13 @@
         <button class="btn btn-secondary" id="resetBtn">Reset Filters</button>
     </div>
     <div class="actions-container">
+        <div class="refresh-container">
+            <span class="last-updated" id="lastUpdated"></span>
+            <button class="btn btn-primary refresh-button" id="refreshBtn">
+                🔄 Refresh Data
+            </button>
+        </div>
         <button class="btn btn-secondary" id="exportBtn">📥 Download XLSX</button>
-        <button class="btn btn-primary" id="refreshBtn">🔄 Refresh Data</button>
     </div>
 </div>
 
@@ -344,6 +364,7 @@
              data-facility="{{ so.Facility }}"
              data-bu="{{ so.BU }}"
              data-customer="{{ so['Customer Name'] }}"
+             data-fg="{{ so.Part }}"
              data-due-ship="{{ so['Due to Ship'] or '' }}"
              data-status="{{ status }}"
              data-net-qty="{{ so['Net Qty'] }}">
