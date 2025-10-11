@@ -298,5 +298,48 @@ class MRPService:
         print("MRP RUN: Calculation complete.")
         return mrp_results
 
+    def get_customer_summary(self, customer_orders):
+        """
+        Summarizes a pre-filtered list of MRP results for a specific customer.
+        Returns richer data for a more comprehensive view.
+        """
+        if not customer_orders:
+            return None
+
+        summary = {
+            'total_open_orders': len(customer_orders),
+            'on_track_orders': 0,
+            'at_risk_orders': 0,
+            'critical_orders': 0,
+            'orders': []
+        }
+
+        for result in customer_orders:
+            # Find only the components that are causing a shortfall for display
+            bottleneck_components = [
+                comp for comp in result.get('components', []) if comp.get('shortfall', 0) > 0
+            ]
+            result['bottleneck_components'] = bottleneck_components
+            has_bottlenecks = len(bottleneck_components) > 0
+
+            # Determine a simplified summary status with improved logic
+            if result['status'] == 'critical':
+                result['summary_status'] = 'Critical'
+                summary['critical_orders'] += 1
+            elif result['status'] == 'job-created' and has_bottlenecks:
+                result['summary_status'] = 'At-Risk'
+                summary['at_risk_orders'] += 1
+            elif result['status'] in ['partial', 'partial-ship', 'pending-qc']:
+                result['summary_status'] = 'At-Risk'
+                summary['at_risk_orders'] += 1
+            else:  # 'ok', 'ready-to-ship', and 'job-created' without bottlenecks
+                result['summary_status'] = 'On-Track'
+                summary['on_track_orders'] += 1
+            
+            summary['orders'].append(result)
+
+        return summary
+
+
 # Singleton instance
 mrp_service = MRPService()

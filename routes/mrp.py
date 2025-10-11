@@ -33,6 +33,54 @@ def view_mrp():
         mrp_results=mrp_results
     )
 
+@mrp_bp.route('/summary')
+@validate_session
+def customer_summary():
+    """Renders the customer-specific MRP summary page with full filtering."""
+    if not (session.get('user', {}).get('is_admin') or session.get('user', {}).get('is_scheduling_admin')):
+        flash('MRP access is restricted.', 'error')
+        return redirect(url_for('main.dashboard'))
+
+    try:
+        mrp_results = mrp_service.calculate_mrp_suggestions()
+        all_customers = sorted(list(set(r['sales_order']['Customer Name'] for r in mrp_results)))
+        
+        selected_customer = request.args.get('customer')
+        summary_data = None
+        orders_for_template = []
+        
+        if selected_customer:
+            customer_orders = [r for r in mrp_results if r['sales_order']['Customer Name'] == selected_customer]
+            summary_data = mrp_service.get_customer_summary(customer_orders)
+            if summary_data:
+                orders_for_template = summary_data.get('orders', [])
+
+    except Exception as e:
+        flash(f'An error occurred while generating the summary: {e}', 'error')
+        all_customers = []
+        selected_customer = None
+        summary_data = None
+        orders_for_template = []
+
+    # Get filter values from URL for the template
+    filters = {
+        'bu': request.args.get('bu'),
+        'fg': request.args.get('fg'),
+        'due_ship': request.args.get('due_ship'),
+        'status': request.args.get('status')
+    }
+
+    return render_template(
+        'mrp/summary.html',
+        user=session['user'],
+        customers=all_customers,
+        selected_customer=selected_customer,
+        summary=summary_data,
+        all_orders=orders_for_template,
+        filters=filters
+    )
+
+
 @mrp_bp.route('/api/export-xlsx', methods=['POST'])
 @validate_session
 def export_mrp_xlsx():
@@ -61,7 +109,7 @@ def export_mrp_xlsx():
         output.seek(0)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"mrp_export_{timestamp}.xlsx"
+        filename = f"po_export_{timestamp}.xlsx"
 
         return send_file(
             output,

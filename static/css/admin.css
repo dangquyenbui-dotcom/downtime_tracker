@@ -391,6 +391,7 @@
 .stat-number.green { color: var(--accent-green); }
 .stat-number.orange { color: var(--accent-orange); }
 .stat-number.purple { color: var(--accent-purple); }
+.stat-number.red { color: var(--accent-red); } /* <-- ADDED THIS LINE */
 
 .stat-label {
     color: var(--text-tertiary);

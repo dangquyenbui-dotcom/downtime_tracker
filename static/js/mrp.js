@@ -1,12 +1,15 @@
-// dangquyenbui-dotcom/production_portal_dev/production_portal_DEV-1d426cd38b2291765ba776ab12103b173b271ab9/static/js/mrp.js
 document.addEventListener('DOMContentLoaded', function() {
     
     // --- INITIALIZATION ---
-    initializeFilters(); // Set up column toggling first
-    restoreFilters();      // Restore filters before attaching listeners or filtering
     attachAllEventListeners();
     
-    // Set and apply initial sort by Sales Order, ascending
+    // 1. Populate filters with all possible options from the full dataset first.
+    updateFilterOptions(); 
+    
+    // 2. Now that all <option> elements exist, restore the saved selections.
+    restoreFilters();      
+    
+    // 3. Set and apply initial sort by Sales Order, ascending
     const soHeader = document.querySelector('.sortable[data-column-id="SO"]');
     if (soHeader) {
         const columnIndex = Array.from(soHeader.parentElement.children).indexOf(soHeader);
@@ -14,12 +17,13 @@ document.addEventListener('DOMContentLoaded', function() {
         sortState.direction = 'asc';
         sortState.columnIndex = columnIndex;
         sortState.columnType = 'string';
-        sortMRP();
-        updateSortIndicators();
     }
     
-    filterMRP(); // Run initial filter to apply restored filters and sort
+    // 4. Finally, run the filter to update the grid view and sort based on the restored state.
+    filterMRP();          
     
+    updateLastUpdatedTime();
+
     // Check for refresh flag
     if (sessionStorage.getItem('mrpWasRefreshed')) {
         dtUtils.showAlert('Data refreshed successfully!', 'success');
@@ -35,12 +39,12 @@ let sortState = {
 };
 
 function attachAllEventListeners() {
-    // Set up the single, delegated listener for the accordion
     attachAccordionEventListeners();
 
     // Filter changes
     document.getElementById('buFilter').addEventListener('change', filterMRP);
     document.getElementById('customerFilter').addEventListener('change', filterMRP);
+    document.getElementById('fgFilter').addEventListener('change', filterMRP);
     document.getElementById('dueShipFilter').addEventListener('change', filterMRP);
     document.getElementById('statusFilter').addEventListener('change', filterMRP);
     document.getElementById('resetBtn').addEventListener('click', resetFilters);
@@ -51,7 +55,6 @@ function attachAllEventListeners() {
         window.location.reload();
     });
     
-    // Sort clicks
     document.querySelectorAll('.so-header-static .sortable').forEach(header => {
         header.addEventListener('click', handleSortClick);
     });
@@ -61,16 +64,12 @@ function attachAccordionEventListeners() {
     const accordion = document.querySelector('.mrp-accordion');
     if (!accordion) return;
 
-    // Event Delegation: Attach one listener to the parent container.
     accordion.addEventListener('click', function(event) {
         const header = event.target.closest('.so-header:not(.no-expand)');
-        
-        // If a valid, expandable header was clicked...
         if (header) {
             header.classList.toggle('expanded');
             const details = document.getElementById(header.dataset.target);
             if (details) {
-                // Toggle visibility using the slide functions
                 if (details.style.display === 'block') {
                     slideUp(details);
                 } else {
@@ -81,38 +80,96 @@ function attachAccordionEventListeners() {
     });
 }
 
+function updateLastUpdatedTime() {
+    const timestampEl = document.getElementById('lastUpdated');
+    if (timestampEl) {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        timestampEl.textContent = `Last Updated: ${timeString}`;
+    }
+}
 
-function initializeFilters() {
-    const headers = document.querySelectorAll('.so-header');
-    const buOptions = new Set();
-    const customerOptions = new Set();
-    const dueShipOptions = new Set();
+function updateFilterOptions() {
+    const selectedBU = document.getElementById('buFilter').value;
+    const selectedCustomer = document.getElementById('customerFilter').value;
+    const selectedFG = document.getElementById('fgFilter').value;
+    const selectedDueShip = document.getElementById('dueShipFilter').value;
+    const selectedStatus = document.getElementById('statusFilter').value;
 
-    headers.forEach(header => {
-        buOptions.add(header.dataset.bu);
-        customerOptions.add(header.dataset.customer);
-        
-        const dueDate = header.dataset.dueShip;
-        if (dueDate && dueDate.includes('/')) {
-            const parts = dueDate.split('/'); // MM/DD/YYYY
-            const monthYear = `${parts[0].padStart(2, '0')}/${parts[2]}`;
-            dueShipOptions.add(monthYear);
-        }
-    });
+    const allRows = document.querySelectorAll('.mrp-accordion .so-header');
 
-    populateSelect('buFilter', [...buOptions].sort());
-    populateSelect('customerFilter', [...customerOptions].sort());
+    const getOptionsFor = (filterToUpdate) => {
+        const options = new Set();
+        let hasBlank = false;
 
-    const sortedDueDates = [...dueShipOptions].sort((a, b) => {
+        allRows.forEach(row => {
+            const bu = row.dataset.bu;
+            const customer = row.dataset.customer;
+            const fg = row.dataset.fg;
+            const dueDate = row.dataset.dueShip || '';
+            const status = row.dataset.status;
+            const dueDateMonthYear = (dueDate && dueDate.includes('/')) ? `${dueDate.split('/')[0].padStart(2, '0')}/${dueDate.split('/')[2]}` : 'Blank';
+
+            let matches = true;
+            if (filterToUpdate !== 'bu' && selectedBU && bu !== selectedBU) matches = false;
+            if (filterToUpdate !== 'customer' && selectedCustomer && customer !== selectedCustomer) matches = false;
+            if (filterToUpdate !== 'fg' && selectedFG && fg !== selectedFG) matches = false;
+            if (filterToUpdate !== 'status' && selectedStatus) {
+                let matchesStatus = false;
+                const productionNeededStatuses = ['ok', 'partial', 'partial-ship', 'job-created'];
+                const actionRequiredStatuses = ['critical', 'pending-qc'];
+                if (selectedStatus === 'ready-to-ship') {
+                    if (status === 'ready-to-ship') matchesStatus = true;
+                } else if (selectedStatus === 'production-needed') {
+                    if (productionNeededStatuses.includes(status)) matchesStatus = true;
+                } else if (selectedStatus === 'action-required') {
+                    if (actionRequiredStatuses.includes(status)) matchesStatus = true;
+                }
+                if (!matchesStatus) matches = false;
+            }
+            if (filterToUpdate !== 'dueShip' && selectedDueShip) {
+                 if (selectedDueShip === 'Blank' && dueDate !== '') matches = false;
+                 else if (selectedDueShip !== 'Blank' && dueDateMonthYear !== selectedDueShip) matches = false;
+            }
+
+            if (matches) {
+                switch(filterToUpdate) {
+                    case 'bu': options.add(bu); break;
+                    case 'customer': options.add(customer); break;
+                    case 'fg': options.add(fg); break;
+                    case 'dueShip':
+                        if (dueDateMonthYear === 'Blank') hasBlank = true;
+                        else options.add(dueDateMonthYear);
+                        break;
+                }
+            }
+        });
+        return { options: [...options].sort(), hasBlank };
+    };
+
+    const buOpts = getOptionsFor('bu');
+    const customerOpts = getOptionsFor('customer');
+    const fgOpts = getOptionsFor('fg');
+    const dueDateOpts = getOptionsFor('dueShip');
+
+    const sortedDueDates = dueDateOpts.options.sort((a, b) => {
+        if (a === 'Blank') return 1; if (b === 'Blank') return -1;
         const [aMonth, aYear] = a.split('/');
         const [bMonth, bYear] = b.split('/');
         return new Date(aYear, aMonth - 1) - new Date(bYear, bMonth - 1);
     });
-    populateSelect('dueShipFilter', sortedDueDates);
+
+    populateSelect('buFilter', buOpts.options, false, selectedBU);
+    populateSelect('customerFilter', customerOpts.options, false, selectedCustomer);
+    populateSelect('fgFilter', fgOpts.options, false, selectedFG);
+    populateSelect('dueShipFilter', sortedDueDates, dueDateOpts.hasBlank, selectedDueShip);
 }
 
-function populateSelect(selectId, options) {
+function populateSelect(selectId, options, addBlankOption = false, selectedValue = null) {
     const select = document.getElementById(selectId);
+    if (!select) return;
+
+    select.innerHTML = `<option value="">All</option>`;
     options.forEach(optionText => {
         if (optionText) {
             const option = document.createElement('option');
@@ -121,12 +178,27 @@ function populateSelect(selectId, options) {
             select.appendChild(option);
         }
     });
+
+    if (addBlankOption) {
+        const blankOption = document.createElement('option');
+        blankOption.value = 'Blank';
+        blankOption.textContent = '(No Date)';
+        select.appendChild(blankOption);
+    }
+    
+    if (selectedValue) {
+        const optionExists = Array.from(select.options).some(opt => opt.value === selectedValue);
+        if (optionExists) {
+            select.value = selectedValue;
+        }
+    }
 }
 
 function saveFilters() {
     const filters = {
         bu: document.getElementById('buFilter').value,
         customer: document.getElementById('customerFilter').value,
+        fg: document.getElementById('fgFilter').value,
         dueShip: document.getElementById('dueShipFilter').value,
         status: document.getElementById('statusFilter').value,
     };
@@ -138,6 +210,7 @@ function restoreFilters() {
     if (savedFilters) {
         document.getElementById('buFilter').value = savedFilters.bu || '';
         document.getElementById('customerFilter').value = savedFilters.customer || '';
+        document.getElementById('fgFilter').value = savedFilters.fg || '';
         document.getElementById('dueShipFilter').value = savedFilters.dueShip || '';
         document.getElementById('statusFilter').value = savedFilters.status || '';
     }
@@ -146,52 +219,35 @@ function restoreFilters() {
 function filterMRP() {
     const buFilter = document.getElementById('buFilter').value;
     const customerFilter = document.getElementById('customerFilter').value;
+    const fgFilter = document.getElementById('fgFilter').value;
     const dueShipFilter = document.getElementById('dueShipFilter').value;
     const statusFilter = document.getElementById('statusFilter').value;
 
     let visibleCount = 0;
-    let okCount = 0;
-    let partialCount = 0;
-    let criticalCount = 0;
-    let readyToShipCount = 0;
-    let pendingQCCount = 0; 
-    let jobCreatedCount = 0;
-    let partialShipmentCount = 0;
+    let okCount = 0, partialCount = 0, criticalCount = 0, readyToShipCount = 0;
+    let pendingQCCount = 0, jobCreatedCount = 0, partialShipmentCount = 0;
 
     const canProduceHeader = document.querySelector('.so-header-static [data-column-id="CanProduce"] label');
     if (canProduceHeader) {
         switch (statusFilter) {
-            case 'ready-to-ship':
-                canProduceHeader.textContent = 'Shippable Qty';
-                break;
-            case 'job-created':
-                canProduceHeader.textContent = 'Shippable On-Hand';
-                break;
-            default:
-                canProduceHeader.textContent = 'Deliverable Qty';
-                break;
+            case 'ready-to-ship': canProduceHeader.textContent = 'Shippable Qty'; break;
+            case 'job-created': canProduceHeader.textContent = 'Shippable On-Hand'; break;
+            default: canProduceHeader.textContent = 'Deliverable Qty'; break;
         }
     }
-
 
     document.querySelectorAll('.so-header').forEach(header => {
         let show = true;
         const status = header.dataset.status;
+        const dueDate = header.dataset.dueShip || '';
+        const dueDateMonthYear = (dueDate && dueDate.includes('/')) ? `${dueDate.split('/')[0].padStart(2, '0')}/${dueDate.split('/')[2]}` : 'Blank';
 
         if (buFilter && header.dataset.bu !== buFilter) show = false;
         if (customerFilter && header.dataset.customer !== customerFilter) show = false;
-        
+        if (fgFilter && header.dataset.fg !== fgFilter) show = false;
         if (dueShipFilter) {
-            const dueDate = header.dataset.dueShip;
-            if (!dueDate || !dueDate.includes('/')) {
-                show = false;
-            } else {
-                const parts = dueDate.split('/');
-                const monthYear = `${parts[0].padStart(2, '0')}/${parts[2]}`;
-                if (monthYear !== dueShipFilter) {
-                    show = false;
-                }
-            }
+            if (dueShipFilter === 'Blank' && dueDate !== '') show = false;
+            else if (dueShipFilter !== 'Blank' && dueDateMonthYear !== dueShipFilter) show = false;
         }
         
         if (statusFilter) {
@@ -206,17 +262,13 @@ function filterMRP() {
             } else if (statusFilter === 'action-required') {
                 if (actionRequiredStatuses.includes(status)) matchesStatus = true;
             }
-            
-            if (!matchesStatus) {
-                show = false;
-            }
+            if (!matchesStatus) show = false;
         }
 
         header.classList.toggle('hidden-row', !show);
         
         if(show) {
             visibleCount++;
-            // Count statuses for the summary cards ONLY for visible rows
             switch(status) {
                 case 'ready-to-ship': readyToShipCount++; break;
                 case 'pending-qc': pendingQCCount++; break;
@@ -232,6 +284,7 @@ function filterMRP() {
     updateSummaryCards(visibleCount, readyToShipCount, pendingQCCount, okCount, partialCount, criticalCount, jobCreatedCount, partialShipmentCount);
     updateRowCount();
     saveFilters();
+    updateFilterOptions();
     sortMRP();
 }
 
@@ -248,10 +301,10 @@ function updateRowCount() {
     }
 }
 
-
 function resetFilters() {
     document.getElementById('buFilter').value = '';
     document.getElementById('customerFilter').value = '';
+    document.getElementById('fgFilter').value = '';
     document.getElementById('dueShipFilter').value = '';
     document.getElementById('statusFilter').value = '';
     sessionStorage.removeItem('mrpFilters');
@@ -303,6 +356,7 @@ function updateSortIndicators() {
 }
 
 function sortMRP() {
+    if (!sortState.column) return;
     const accordion = document.querySelector('.mrp-accordion');
     const orderGroups = Array.from(accordion.querySelectorAll('.so-header')).map(header => {
         const details = document.getElementById(header.dataset.target);
