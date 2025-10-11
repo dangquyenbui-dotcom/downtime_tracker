@@ -154,6 +154,7 @@ function filterMRP() {
     let readyToShipCount = 0;
     let pendingQCCount = 0; 
     let jobCreatedCount = 0;
+    let partialShipmentCount = 0;
 
     const canProduceHeader = document.querySelector('.so-header-static [data-column-id="CanProduce"] label');
     if (canProduceHeader) {
@@ -192,9 +193,9 @@ function filterMRP() {
         }
         
         if (statusFilter) {
-            if (statusFilter === 'ready-to-ship' && !['ready-to-ship', 'partial-ship'].includes(status)) {
+            if (statusFilter === 'ready-to-ship' && status !== 'ready-to-ship') {
                 show = false;
-            } else if (statusFilter === 'production-needed' && !['ok', 'partial'].includes(status)) {
+            } else if (statusFilter === 'production-needed' && !['ok', 'partial', 'partial-ship'].includes(status)) {
                 show = false;
             } else if (statusFilter === 'action-required' && !['critical', 'pending-qc'].includes(status)) {
                 show = false;
@@ -221,8 +222,10 @@ function filterMRP() {
                 case 'ok':
                     okCount++;
                     break;
+                case 'partial-ship': 
+                    partialShipmentCount++;
+                    break;
                 case 'partial':
-                case 'partial-ship': // Count new status in partial bucket
                     partialCount++;
                     break;
                 case 'critical':
@@ -232,7 +235,7 @@ function filterMRP() {
         }
     });
 
-    updateSummaryCards(visibleCount, readyToShipCount, pendingQCCount, okCount, partialCount, criticalCount, jobCreatedCount);
+    updateSummaryCards(visibleCount, readyToShipCount, pendingQCCount, okCount, partialCount, criticalCount, jobCreatedCount, partialShipmentCount);
     updateRowCount();
     saveFilters();
     sortMRP();
@@ -261,7 +264,7 @@ function resetFilters() {
     filterMRP();
 }
 
-function updateSummaryCards(total, readyToShip, pendingQC, ok, partial, critical, jobCreated) {
+function updateSummaryCards(total, readyToShip, pendingQC, ok, partial, critical, jobCreated, partialShipment) {
     document.getElementById('total-orders').textContent = total;
     document.getElementById('ready-to-ship-count').textContent = readyToShip;
     document.getElementById('pending-qc-count').textContent = pendingQC;
@@ -269,6 +272,7 @@ function updateSummaryCards(total, readyToShip, pendingQC, ok, partial, critical
     document.getElementById('partial-production').textContent = partial;
     document.getElementById('critical-shortage').textContent = critical;
     document.getElementById('job-created-count').textContent = jobCreated;
+    document.getElementById('partial-shipment-count').textContent = partialShipment;
 }
 
 function handleSortClick(e) {
