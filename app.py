@@ -60,6 +60,7 @@ def register_blueprints(app):
     from routes.bom import bom_bp
     from routes.po import po_bp
     from routes.mrp import mrp_bp
+    from routes.sales import sales_bp # <-- ADD THIS IMPORT
     from routes.admin.panel import admin_panel_bp
     from routes.admin.facilities import admin_facilities_bp
     from routes.admin.production_lines import admin_lines_bp
@@ -67,7 +68,7 @@ def register_blueprints(app):
     from routes.admin.audit import admin_audit_bp
     from routes.admin.shifts import admin_shifts_bp
     from routes.admin.users import admin_users_bp
-    from routes.admin.capacity import admin_capacity_bp # <-- IMPORT THE NEW BLUEPRINT
+    from routes.admin.capacity import admin_capacity_bp 
     
     # Register blueprints
     app.register_blueprint(main_bp)
@@ -78,6 +79,7 @@ def register_blueprints(app):
     app.register_blueprint(bom_bp)
     app.register_blueprint(po_bp)
     app.register_blueprint(mrp_bp)
+    app.register_blueprint(sales_bp) # <-- ADD THIS LINE
     
     # Register all admin blueprints under the /admin prefix
     app.register_blueprint(admin_panel_bp, url_prefix='/admin')
@@ -87,7 +89,7 @@ def register_blueprints(app):
     app.register_blueprint(admin_audit_bp, url_prefix='/admin')
     app.register_blueprint(admin_shifts_bp, url_prefix='/admin')
     app.register_blueprint(admin_users_bp, url_prefix='/admin')
-    app.register_blueprint(admin_capacity_bp, url_prefix='/admin') # <-- REGISTER THE NEW BLUEPRINT
+    app.register_blueprint(admin_capacity_bp, url_prefix='/admin')
 
 # ... (rest of app.py remains the same) ...
 

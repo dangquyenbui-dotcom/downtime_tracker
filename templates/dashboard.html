@@ -273,10 +273,8 @@
                     Scheduling Administrator
                 {% elif user.is_scheduling_user %}
                     Scheduling Read-Only
-                {% elif user.is_user %}
-                    Downtime Entry Only
                 {% else %}
-                    Limited Access
+                    Downtime Entry Only
                 {% endif %}
             </div>
         </div>
@@ -370,6 +368,15 @@
         <div class="action-icon">📈</div>
         <div class="action-title">MRP Customer Summary</div>
         <div class="action-desc">View order status and shortages by customer.</div>
+    </a>
+    {% endif %}
+
+    {# NEW: Customer Analysis Card - For Admins and Scheduling users #}
+    {% if user.is_admin or user.is_scheduling_admin or user.is_scheduling_user %}
+    <a href="{{ url_for('sales.customer_analysis') }}" class="action-card">
+        <div class="action-icon">🧑‍💼</div>
+        <div class="action-title">Customer Analysis</div>
+        <div class="action-desc">Review customer performance and sales data.</div>
     </a>
     {% endif %}
     
